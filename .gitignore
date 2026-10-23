@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# SQLite
+auditra.db
+auditra.db-wal
+auditra.db-shm
+*.sqlite
+*.db
+
+# Node & Frontend
+node_modules/
+.npm
+frontend/node_modules/
+frontend/dist/
+
+# Tests & IDE
+.pytest_cache/
+.vscode/
+.idea/
