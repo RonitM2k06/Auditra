@@ -1,28 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
-import { BarChart2, BookOpen, Check, ChevronsUpDown, FileText, History, Inbox, LayoutGrid, Plus, Settings, X } from 'lucide-react';
+import { BarChart2, BookOpen, Check, ChevronsUpDown, FilePlus2, FileText, History, Inbox, LayoutGrid, Plus, Settings, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { ACTORS, Button, cx, Logo, type Role } from './ui';
+import { ACTORS, cx, Logo, type Role } from './ui';
 import type { Brand } from '../types';
 
 type NavEntry = { id: string; label: string; icon: LucideIcon; showCount?: boolean };
 
-const NAV: Array<{ group: string | null; items: NavEntry[] }> = [
+const NAV: Array<{ group: string; items: NavEntry[] }> = [
   {
-    group: null,
+    group: 'Workspace',
     items: [
       { id: 'overview', label: 'Overview', icon: LayoutGrid },
       { id: 'reviews', label: 'Content reviews', icon: FileText },
-      { id: 'approvals', label: 'Approval queue', icon: Inbox, showCount: true },
+      { id: 'studio', label: 'New review', icon: FilePlus2 },
     ],
   },
-  { group: 'Policy', items: [{ id: 'rulebook', label: 'Brand rulebook', icon: BookOpen }] },
   {
-    group: 'Records',
+    group: 'Brand governance',
     items: [
+      { id: 'rulebook', label: 'Brand rulebook', icon: BookOpen },
+      { id: 'approvals', label: 'Approval queue', icon: Inbox, showCount: true },
       { id: 'audit', label: 'Audit trail', icon: History },
-      { id: 'insights', label: 'Insights', icon: BarChart2 },
     ],
   },
+  { group: 'Insights', items: [{ id: 'insights', label: 'Governance insights', icon: BarChart2 }] },
+  { group: 'Configuration', items: [{ id: 'settings', label: 'Settings', icon: Settings }] },
 ];
 
 interface SidebarProps {
@@ -37,12 +39,14 @@ interface SidebarProps {
   queueCount: number;
   open: boolean;
   onClose: () => void;
+  hasId: boolean;
 }
 
-export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBrand, role, setRole, queueCount, open, onClose }: SidebarProps) {
+export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBrand, role, setRole, queueCount, open, onClose, hasId }: SidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const active = page === 'studio' ? 'reviews' : page;
+  // An existing review highlights "Content reviews"; a blank studio highlights "New review".
+  const active = page === 'studio' ? (hasId ? 'reviews' : 'studio') : page;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -62,14 +66,15 @@ export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBra
         onClick={() => navigate(n.id)}
         aria-current={isActive ? 'page' : undefined}
         className={cx(
-          'flex w-full items-center gap-2.5 rounded-md px-2 py-[7px] text-[13.5px] transition-colors',
-          isActive ? 'bg-white font-medium text-ink-900 ring-1 ring-line' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900',
+          'relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine-500/70',
+          isActive ? 'bg-pine-500/[0.14] font-medium text-white' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white',
         )}
       >
-        <Icon className={cx('h-4 w-4', isActive ? 'text-ink-900' : 'text-ink-400')} strokeWidth={1.75} />
+        {isActive && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r bg-pine-500" aria-hidden />}
+        <Icon className={cx('h-[18px] w-[18px]', isActive ? 'text-teal-300' : 'text-slate-400')} strokeWidth={1.75} />
         <span className="flex-1 text-left">{n.label}</span>
         {n.showCount && queueCount > 0 && (
-          <span className="min-w-[20px] rounded-full bg-ink-900 px-1.5 text-center text-[11px] font-medium leading-[18px] text-white">{queueCount}</span>
+          <span className="min-w-[20px] rounded-full bg-pine-500 px-1.5 text-center text-[11px] font-semibold leading-[18px] text-white">{queueCount}</span>
         )}
       </button>
     );
@@ -77,16 +82,16 @@ export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBra
 
   return (
     <>
-      {open && <div className="fixed inset-0 z-30 bg-ink-900/20 lg:hidden" onClick={onClose} aria-hidden />}
+      {open && <div className="fixed inset-0 z-30 bg-navy-950/50 lg:hidden" onClick={onClose} aria-hidden />}
       <aside
         className={cx(
-          'fixed inset-y-0 left-0 z-40 flex w-[244px] shrink-0 flex-col border-r border-line bg-ink-50 transition-transform duration-200 lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-[248px] shrink-0 flex-col bg-navy-900 transition-transform duration-200 lg:static lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex h-12 items-center justify-between px-4">
-          <Logo />
-          <button onClick={onClose} className="rounded p-1 text-ink-500 hover:bg-ink-100 lg:hidden" aria-label="Close navigation">
+        <div className="flex h-16 items-center justify-between px-4">
+          <Logo dark />
+          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Close navigation">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -97,7 +102,7 @@ export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBra
             onClick={() => setMenuOpen((v) => !v)}
             aria-haspopup="listbox"
             aria-expanded={menuOpen}
-            className="flex w-full items-center gap-2.5 rounded-md border border-line bg-white px-2 py-1.5 text-left hover:border-ink-300"
+            className="flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-left transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pine-500/70"
           >
             <span
               className="grid h-6 w-6 shrink-0 place-items-center rounded text-[12px] font-semibold text-white"
@@ -106,10 +111,10 @@ export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBra
               {brand?.name.charAt(0) ?? '?'}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-medium text-ink-900">{brand?.name ?? 'No workspace'}</span>
-              <span className="block truncate text-[11.5px] text-ink-500">{brand?.is_sample ? 'Demo workspace' : brand?.industry}</span>
+              <span className="block truncate text-[13px] font-medium text-white">{brand?.name ?? 'No workspace'}</span>
+              <span className="block truncate text-[11.5px] text-slate-400">{brand?.is_sample ? 'Demo workspace' : brand?.industry}</span>
             </span>
-            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-ink-400" />
+            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
           </button>
 
           {menuOpen && (
@@ -146,32 +151,24 @@ export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBra
           )}
         </div>
 
-        <div className="px-3 pt-3">
-          <Button variant="primary" className="w-full" onClick={() => navigate('studio')}>
-            <Plus className="h-3.5 w-3.5" /> New review
-          </Button>
-        </div>
-
-        <nav className="mt-5 flex-1 space-y-5 overflow-y-auto px-2" aria-label="Main">
+        <nav className="mt-4 flex-1 space-y-5 overflow-y-auto px-3" aria-label="Main">
           {NAV.map((g, i) => (
             <div key={i}>
-              {g.group && <p className="mb-1 px-2 text-[11px] font-medium uppercase tracking-wider text-ink-400">{g.group}</p>}
+              <p className="mb-1.5 px-2.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-slate-500">{g.group}</p>
               <div className="space-y-px">{g.items.map(item)}</div>
             </div>
           ))}
         </nav>
 
-        <div className="px-2 pb-2">{item({ id: 'settings', label: 'Settings', icon: Settings })}</div>
-
-        <div className="border-t border-line p-3">
-          <label htmlFor="role-select" className="block text-[11px] font-medium uppercase tracking-wider text-ink-400">
+        <div className="border-t border-white/10 p-3">
+          <label htmlFor="role-select" className="block text-[10.5px] font-semibold uppercase tracking-[0.1em] text-slate-500">
             Acting as
           </label>
           <select
             id="role-select"
             value={role}
             onChange={(e) => setRole(e.target.value as Role)}
-            className="mt-1.5 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[13px] text-ink-900 focus:border-ink-400 focus:outline-none"
+            className="mt-1.5 w-full rounded-lg border border-white/10 bg-navy-800 px-2 py-1.5 text-[13px] text-white focus:border-pine-500 focus:outline-none"
           >
             {(Object.keys(ACTORS) as Role[]).map((r) => (
               <option key={r} value={r}>
@@ -179,7 +176,7 @@ export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBra
               </option>
             ))}
           </select>
-          <p className="mt-1.5 text-[11.5px] leading-snug text-ink-400">Demo roles for evaluation. There is no login, so this is not access control.</p>
+          <p className="mt-1.5 text-[11.5px] leading-snug text-slate-500">Demo roles for evaluation. There is no login, so this is not access control.</p>
         </div>
       </aside>
     </>

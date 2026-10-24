@@ -24,7 +24,7 @@ export function Insights({ brand }: { brand: Brand }) {
 
   return (
     <Page width="max-w-5xl">
-      <PageHeader title="Insights" description={`Patterns across every review run in ${brand.name}. Small samples, so read these as prompts for a conversation rather than conclusions.`} />
+      <PageHeader title="Governance insights" description={`Patterns across every review run in ${brand.name}. Small samples, so read these as prompts for a conversation rather than conclusions.`} />
 
       <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-line bg-white lg:grid-cols-4">
         {[
@@ -35,7 +35,7 @@ export function Insights({ brand }: { brand: Brand }) {
         ].map((s, i) => (
           <div key={s.label} className={`px-5 py-4 ${i % 2 ? 'border-l border-line' : ''} ${i >= 2 ? 'border-t border-line lg:border-t-0' : ''} ${i === 2 ? 'lg:border-l' : ''}`}>
             <p className="text-[12.5px] text-ink-500">{s.label}</p>
-            <p className="mt-1 font-serif text-[28px] leading-none tabular-nums text-ink-900">{s.value}</p>
+            <p className="mt-1 font-serif font-semibold text-[28px] leading-none tabular-nums text-ink-900">{s.value}</p>
           </div>
         ))}
       </div>
@@ -59,7 +59,7 @@ export function Insights({ brand }: { brand: Brand }) {
                     </span>
                   </div>
                   <div className="mt-1 h-1.5 rounded-full bg-ink-100">
-                    <div className="h-1.5 rounded-full bg-ink-800" style={{ width: `${(c.count / maxCat) * 100}%` }} />
+                    <div className="h-1.5 rounded-full bg-pine-600" style={{ width: `${(c.count / maxCat) * 100}%` }} />
                   </div>
                 </li>
               ))}
@@ -94,7 +94,7 @@ export function Insights({ brand }: { brand: Brand }) {
               <li key={f.id} className="flex flex-col gap-1 px-4 py-3 text-[13px] sm:flex-row sm:items-center sm:gap-4">
                 <SeverityTag severity={f.severity} />
                 <span className="w-36 shrink-0 text-ink-500">{CATEGORY_LABEL[f.category] ?? f.category}</span>
-                <span className="min-w-0 flex-1 truncate font-serif text-[14px] text-ink-900">“{f.matched_text}”</span>
+                <span className="min-w-0 flex-1 truncate font-serif font-semibold text-[14px] text-ink-900">“{f.matched_text}”</span>
                 <span className="shrink-0 text-[12px] text-ink-400">{timeAgo(f.created_at)}</span>
               </li>
             ))}

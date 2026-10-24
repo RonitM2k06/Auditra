@@ -106,6 +106,13 @@ def test_brands_and_sample_workspace(client):
     northstar = next(b for b in brands if b["slug"] == "northstar")
     assert northstar["is_sample"] is True
 
+def test_create_content_takes_brand_from_path(client):
+    # The studio posts without brand_id in the body; the URL path identifies the brand.
+    brand_id = client.get("/api/brands").json()[0]["id"]
+    resp = client.post(f"/api/brands/{brand_id}/content", json={"title": "Path brand", "body": "Hello."})
+    assert resp.status_code == 201
+    assert resp.json()["brand_id"] == brand_id
+
 def test_content_lifecycle_and_corrections(client):
     # 1. Get Northstar brand
     resp = client.get("/api/brands")

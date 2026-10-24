@@ -20,7 +20,12 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     try {
       const errJson = await res.json();
       if (errJson.detail) {
-        errorDetail = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
+        // FastAPI validation errors arrive as a list; show their messages, not raw JSON.
+        errorDetail = typeof errJson.detail === 'string'
+          ? errJson.detail
+          : Array.isArray(errJson.detail)
+            ? errJson.detail.map((d: { loc?: unknown[]; msg?: string }) => `${d.loc?.slice(-1)[0] ?? 'request'}: ${d.msg ?? 'invalid'}`).join('; ')
+            : JSON.stringify(errJson.detail);
       }
     } catch (_) {}
     throw new Error(errorDetail);

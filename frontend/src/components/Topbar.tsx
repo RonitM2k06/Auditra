@@ -6,18 +6,18 @@ import type { HealthStatus } from '../api';
 const PAGE_LABEL: Record<string, string> = {
   overview: 'Overview',
   reviews: 'Content reviews',
-  studio: 'Review',
+  studio: 'Review studio',
   rulebook: 'Brand rulebook',
   approvals: 'Approval queue',
   audit: 'Audit trail',
-  insights: 'Insights',
+  insights: 'Governance insights',
   settings: 'Settings',
 };
 
 export function Topbar({ brand, page, onMenu, health }: { brand: Brand | null; page: string; onMenu: () => void; health: HealthStatus | null }) {
   const aiOn = health?.ai_engine === 'configured';
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-paper px-4 sm:px-6">
+    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-white px-4 sm:px-6">
       <button onClick={onMenu} className="-ml-1 rounded p-1 text-ink-500 hover:bg-ink-100 lg:hidden" aria-label="Open navigation">
         <Menu className="h-5 w-5" />
       </button>

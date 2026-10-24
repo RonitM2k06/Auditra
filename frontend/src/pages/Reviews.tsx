@@ -70,7 +70,7 @@ export function Reviews({ brand, navigate, onChanged }: { brand: Brand; navigate
               { id: 'rejected', label: 'Rejected', count: count('rejected') },
             ]}
           />
-          <div className="relative sm:w-64">
+          <div className="relative sm:max-w-xs xl:w-64">
             <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-ink-400" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search title or author" aria-label="Search" className={`${inputCls} pl-8`} />
           </div>

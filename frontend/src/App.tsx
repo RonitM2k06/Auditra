@@ -136,7 +136,7 @@ function Shell() {
       <div className="flex h-full items-center justify-center px-6">
         <div className="w-full max-w-md">
           <Logo />
-          <h1 className="mt-8 font-serif text-[28px] leading-tight text-ink-900">Check content against your brand rules before it ships.</h1>
+          <h1 className="mt-8 font-serif font-semibold text-[28px] leading-tight text-ink-900">Check content against your brand rules before it ships.</h1>
           <p className="mt-3 text-[14px] leading-relaxed text-ink-600">
             Start with the Northstar demo (a fictional brand with rules and sample copy already set up) or create an empty workspace for your own brand.
           </p>
@@ -216,6 +216,7 @@ function Shell() {
         queueCount={queueCount}
         open={navOpen}
         onClose={() => setNavOpen(false)}
+        hasId={!!route.id}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar brand={brand} page={route.page} onMenu={() => setNavOpen(true)} health={health} />

@@ -160,7 +160,7 @@ export function Rulebook({ brand }: { brand: Brand }) {
                   onClick={() => setCategory(c)}
                   className={cx(
                     'rounded-full border px-2.5 py-0.5 text-[12.5px] transition-colors',
-                    category === c ? 'border-ink-900 bg-ink-900 text-white' : 'border-line bg-white text-ink-600 hover:border-ink-300',
+                    category === c ? 'border-pine-600 bg-pine-50 font-medium text-pine-700' : 'border-line bg-white text-ink-600 hover:border-ink-300',
                   )}
                 >
                   {c === 'all' ? 'All' : CATEGORY_LABEL[c]}
@@ -244,7 +244,7 @@ export function Rulebook({ brand }: { brand: Brand }) {
                 <tbody className="divide-y divide-line">
                   {claims.map((c) => (
                     <tr key={c.id}>
-                      <td className="max-w-md px-4 py-3 font-serif text-[14px] text-ink-900">{c.claim_statement}</td>
+                      <td className="max-w-md px-4 py-3 font-serif font-semibold text-[14px] text-ink-900">{c.claim_statement}</td>
                       <td className="px-4 py-3 text-ink-600">{c.topic}</td>
                       <td className="px-4 py-3 text-[12.5px] text-ink-500">{c.evidence_source}</td>
                       <td className="whitespace-nowrap px-4 py-3 tabular-nums text-ink-500">{c.verification_date || '—'}</td>

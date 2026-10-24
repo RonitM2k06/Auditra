@@ -148,7 +148,7 @@ class ContentVersionResponse(BaseModel):
 
 # --- Content Items ---
 class ContentItemCreate(BaseModel):
-    brand_id: str
+    brand_id: Optional[str] = None  # taken from the URL path; accepted for backwards compatibility
     title: str = Field(..., min_length=1, max_length=255)
     content_type: str = Field("social_post", max_length=60)
     body: str = Field(..., min_length=1)

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock3, FileText, Plus } from 'lucide-react';
 import { Button, EmptyState, Page, PageHeader, PageSkeleton, Section, SEV_META, SEVERITIES, STATUS_META, cx, timeAgo, useToast } from '../components/ui';
 import { ContentTable } from '../components/ContentTable';
-import type { Brand, DashboardStats } from '../types';
+import type { Brand, ContentItem, DashboardStats } from '../types';
 import { api } from '../api';
 
 const STATUS_ORDER = ['draft', 'in_review', 'changes_requested', 'approved', 'rejected'];
@@ -10,22 +10,26 @@ const STATUS_ORDER = ['draft', 'in_review', 'changes_requested', 'approved', 're
 export function Overview({ brand, navigate }: { brand: Brand; navigate: (page: string, id?: string | null) => void }) {
   const toast = useToast();
   const [s, setS] = useState<DashboardStats | null>(null);
+  const [attention, setAttention] = useState<ContentItem[]>([]);
 
   useEffect(() => {
     setS(null);
     api.getDashboard(brand.id).then(setS).catch((e) => toast(e.message, 'error'));
+    // Query the workflow states directly: recent_reviews is capped and would miss older submissions.
+    Promise.all([api.getContentItems(brand.id, 'in_review'), api.getContentItems(brand.id, 'changes_requested')])
+      .then(([a, b]) => setAttention([...a, ...b]))
+      .catch(() => setAttention([]));
   }, [brand.id, toast]);
 
   if (!s) return <PageSkeleton />;
 
-  const attention = s.recent_reviews.filter((r) => r.status === 'in_review' || r.status === 'changes_requested');
   const totalOpen = SEVERITIES.reduce((n, k) => n + (s.severity_distribution[k] || 0), 0);
 
   const stats = [
-    { label: 'Pieces of content', value: s.total_reviews, go: 'reviews' },
-    { label: 'Waiting for approval', value: s.awaiting_approval, go: 'approvals' },
-    { label: 'With open critical or high findings', value: s.high_severity_issues, go: 'reviews' },
-    { label: 'Approved', value: s.approved_reviews, go: 'reviews' },
+    { label: 'Total reviews', value: s.total_reviews, go: 'reviews', icon: FileText, tone: 'text-ink-500' },
+    { label: 'Awaiting approval', value: s.awaiting_approval, go: 'approvals', icon: Clock3, tone: 'text-sky-700' },
+    { label: 'With open critical or high findings', value: s.high_severity_issues, go: 'reviews', icon: AlertTriangle, tone: 'text-orange-600' },
+    { label: 'Approved', value: s.approved_reviews, go: 'reviews', icon: CheckCircle2, tone: 'text-pine-600' },
   ];
 
   return (
@@ -54,21 +58,29 @@ export function Overview({ brand, navigate }: { brand: Brand; navigate: (page: s
             onClick={() => navigate(st.go)}
             className={cx('px-5 py-4 text-left transition-colors hover:bg-ink-50', i % 2 === 1 && 'border-l border-line', i >= 2 && 'border-t border-line lg:border-t-0', i === 2 && 'lg:border-l')}
           >
-            <p className="text-[12.5px] text-ink-500">{st.label}</p>
-            <p className="mt-1 font-serif text-[30px] leading-none tabular-nums text-ink-900">{st.value}</p>
+            <p className="flex items-center justify-between gap-2 text-[12.5px] text-ink-500">
+              {st.label}
+              <st.icon className={cx('h-4 w-4 shrink-0', st.tone)} aria-hidden />
+            </p>
+            <p className="mt-2 font-serif font-semibold text-[30px] leading-none tabular-nums text-ink-900">{st.value}</p>
           </button>
         ))}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
-          <Section title="Needs attention" description="Submitted pieces and pieces sent back to their authors.">
-            <ContentTable
-              items={attention}
-              onOpen={(id) => navigate('studio', id)}
-              empty={<EmptyState title="Nothing is waiting on anyone" body="Submitted content and requested changes will show up here." />}
-            />
-          </Section>
+          {attention.length > 0 ? (
+            <Section
+              title={`${attention.length} ${attention.length === 1 ? 'piece needs' : 'pieces need'} attention`}
+              description="Submitted for approval, or sent back to the author with requested changes."
+            >
+              <ContentTable items={attention} onOpen={(id) => navigate('studio', id)} empty={null} />
+            </Section>
+          ) : (
+            <p className="flex items-center gap-2 rounded-lg border border-line bg-white px-4 py-3 text-[13px] text-ink-600">
+              <CheckCircle2 className="h-4 w-4 text-pine-600" aria-hidden /> Nothing is waiting on a reviewer or an author right now.
+            </p>
+          )}
           <Section
             title="Recently updated"
             action={
@@ -78,7 +90,7 @@ export function Overview({ brand, navigate }: { brand: Brand; navigate: (page: s
             }
           >
             <ContentTable
-              items={s.recent_reviews}
+              items={s.recent_reviews.slice(0, 6)}
               onOpen={(id) => navigate('studio', id)}
               empty={<EmptyState title="No content yet" body="Start a review to check your first piece." action={<Button variant="primary" onClick={() => navigate('studio')}>New review</Button>} />}
             />

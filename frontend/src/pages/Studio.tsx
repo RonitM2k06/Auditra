@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, CornerDownLeft, Pencil, RotateCcw } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, ChevronDown, CornerDownLeft, FileText, Pencil, RotateCcw } from 'lucide-react';
 import {
   ACTORS,
   Button,
@@ -367,7 +367,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
         <button onClick={() => navigate('reviews')} className="flex items-center gap-1 text-[13px] text-ink-500 hover:text-ink-900">
           <ArrowLeft className="h-3.5 w-3.5" /> Reviews
         </button>
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex min-w-0 flex-1 basis-[22rem] items-center gap-3">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -390,7 +390,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
           <Button size="sm" onClick={save} disabled={!!busy || (!!item && !dirty)} title="Ctrl+S">
             {busy === 'save' ? 'Saving…' : 'Save'}
           </Button>
-          <Button size="sm" variant={canSubmit || !item ? 'secondary' : 'secondary'} onClick={runReview} disabled={!!busy} title="Ctrl+Enter">
+          <Button size="sm" variant={canSubmit || status === 'in_review' ? 'secondary' : 'primary'} onClick={runReview} disabled={!!busy} title="Ctrl+Enter">
             {busy === 'review' ? 'Checking…' : review ? 'Re-run review' : 'Run review'}
           </Button>
           {canSubmit && (
@@ -417,7 +417,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Document */}
-        <div className="flex min-h-[60vh] min-w-0 flex-1 flex-col bg-paper lg:min-h-0">
+        <div className="flex min-h-[40vh] min-w-0 flex-1 flex-col bg-paper lg:min-h-0">
           <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2 text-[12.5px] text-ink-500 sm:px-6">
             <div className="inline-flex rounded-md border border-line bg-white p-0.5" role="group" aria-label="View">
               {(['edit', 'marked'] as const).map((m) => (
@@ -428,7 +428,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                   title={m === 'marked' && (stale || !review) ? 'Run a review on the current text to see marked findings' : undefined}
                   className={cx(
                     'rounded px-2.5 py-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-                    effectiveMode === m ? 'bg-ink-900 text-white' : 'text-ink-600 hover:text-ink-900',
+                    effectiveMode === m ? 'bg-pine-600 text-white' : 'text-ink-600 hover:text-ink-900',
                   )}
                 >
                   {m === 'edit' ? 'Edit' : 'Marked up'}
@@ -471,30 +471,30 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                 }} />
               ) : (
                 <>
+                  {!item && !body && (
+                    <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-dashed border-ink-300 bg-white px-4 py-3 text-[13px] text-ink-600">
+                      <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-ink-500">Demo</span>
+                      <span className="flex-1">Nothing to hand? Load fictional promo copy that breaks a few rules on purpose.</span>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setBody(SAMPLE_COPY);
+                          if (!title) setTitle('Q4 cloud promotion — draft');
+                        }}
+                      >
+                        Use sample copy
+                      </Button>
+                    </div>
+                  )}
                   <textarea
                     ref={textareaRef}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Paste or write the copy you want checked…"
                     aria-label="Content"
-                    className="min-h-[50vh] w-full resize-none bg-transparent font-serif text-[17px] leading-[1.75] text-ink-900 placeholder:text-ink-300 focus:outline-none"
+                    className="min-h-[50vh] w-full resize-none bg-transparent text-[16px] leading-[1.8] text-ink-900 placeholder:text-ink-300 focus:outline-none"
                     style={{ fieldSizing: 'content' } as React.CSSProperties}
                   />
-                  {!item && !body && (
-                    <p className="mt-2 text-[13px] text-ink-500">
-                      Nothing to hand?{' '}
-                      <button
-                        className="font-medium text-ink-800 underline underline-offset-2"
-                        onClick={() => {
-                          setBody(SAMPLE_COPY);
-                          if (!title) setTitle('Q4 cloud promotion — draft');
-                        }}
-                      >
-                        Use the sample promo copy
-                      </button>{' '}
-                      — it breaks a few of the Northstar rules on purpose.
-                    </p>
-                  )}
                 </>
               )}
             </div>
@@ -502,7 +502,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
         </div>
 
         {/* Side panel */}
-        <aside className="flex min-h-0 w-full shrink-0 flex-col border-t border-line bg-white lg:w-[400px] lg:border-l lg:border-t-0">
+        <aside className="flex min-h-0 w-full shrink-0 flex-col border-t border-line bg-white lg:w-[340px] xl:w-[400px] lg:border-l lg:border-t-0">
           <div className="px-4 pt-3">
             <Tabs
               value={panel}
@@ -519,11 +519,19 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
             {panel === 'findings' && (
               <>
                 {!review ? (
-                  <div className="px-5 py-10 text-center text-[13px] text-ink-500">
-                    <p className="font-medium text-ink-800">No review yet</p>
-                    <p className="mt-1">
-                      Run a review to check this text against the {brand.name} rulebook. Takes a second; nothing is published.
+                  <div className="px-6 py-12 text-center text-[13px] text-ink-500">
+                    <span className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-pine-50 text-pine-700">
+                      <FileText className="h-5 w-5" />
+                    </span>
+                    <p className="mt-3 text-[14px] font-medium text-ink-900">No review yet</p>
+                    <p className="mx-auto mt-1 max-w-[30ch] leading-relaxed">
+                      Run a review to check this text against the {brand.name} rulebook. Nothing is published.
                     </p>
+                    <ol className="mx-auto mt-5 max-w-[30ch] space-y-1.5 text-left text-[12.5px]">
+                      <li>1. Write or paste your copy</li>
+                      <li>2. Run review to see findings</li>
+                      <li>3. Apply fixes, then submit for approval</li>
+                    </ol>
                   </div>
                 ) : (
                   <>
@@ -533,11 +541,8 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                         <p className="text-[12.5px] text-ink-500">
                           Review of v{reviewedVersion?.version_number ?? '?'} · {timeAgo(review.created_at)}
                         </p>
-                        <p
-                          className="text-[12.5px] text-ink-500"
-                          title="Weighted sum of findings at review time: critical 35, high 20, medium 10, low 3, capped at 100. A rough triage aid, not a verdict."
-                        >
-                          Risk <span className="font-semibold tabular-nums text-ink-900">{review.risk_score}</span>/100
+                        <p className="text-[12.5px] font-medium text-ink-800">
+                          {openFindings.length === 0 ? 'No open findings' : `${openFindings.length} open finding${openFindings.length === 1 ? '' : 's'}`}
                         </p>
                       </div>
                       <div className="mt-2.5 grid grid-cols-4 gap-px overflow-hidden rounded-md border border-line bg-line text-center">
@@ -545,7 +550,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                           <button
                             key={s}
                             onClick={() => setSevFilter(sevFilter === s ? 'all' : s)}
-                            className={cx('bg-white px-1 py-1.5 hover:bg-ink-50', sevFilter === s && 'bg-ink-50 ring-1 ring-inset ring-ink-900')}
+                            className={cx('bg-white px-1 py-1.5 hover:bg-ink-50', sevFilter === s && 'bg-ink-50 ring-1 ring-inset ring-pine-600')}
                             aria-pressed={sevFilter === s}
                           >
                             <span className={cx('block text-[16px] font-semibold tabular-nums', openSeverity(s) ? SEV_META[s].text : 'text-ink-300')}>{openSeverity(s)}</span>
@@ -586,7 +591,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                             selected={selected === f.id}
                             busy={!!busy}
                             editing={editing?.id === f.id ? editing.text : null}
-                            onSelect={() => selectFinding(f)}
+                            onSelect={() => (selected === f.id ? setSelected(null) : selectFinding(f))}
                             onEdit={(text) => setEditing(text === null ? null : { id: f.id, text })}
                             onApply={(custom) => startApply(f, custom)}
                             onDismiss={() => dismiss(f)}
@@ -630,7 +635,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                         const current = v.version_number === item.current_version_number;
                         return (
                           <li key={v.id} className="relative">
-                            <span className={cx('absolute -left-[21px] top-1.5 h-2 w-2 rounded-full ring-2 ring-white', current ? 'bg-ink-900' : 'bg-ink-300')} />
+                            <span className={cx('absolute -left-[21px] top-1.5 h-2 w-2 rounded-full ring-2 ring-white', current ? 'bg-pine-600' : 'bg-ink-300')} />
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-[13px] font-medium text-ink-900">
                                 v{v.version_number} {current && <span className="ml-1 font-normal text-ink-500">current</span>}
@@ -769,7 +774,7 @@ function MarkedText({ text, findings, selected, onSelect }: { text: string; find
         className={cx(
           'cursor-pointer rounded-[2px] px-[1px] text-inherit underline decoration-2 underline-offset-[5px] outline-none',
           SEV_META[f.severity]?.mark,
-          selected === f.id && 'ring-2 ring-ink-900',
+          selected === f.id && 'ring-2 ring-pine-500',
         )}
       >
         {text.slice(f.start_offset, f.end_offset)}
@@ -781,7 +786,7 @@ function MarkedText({ text, findings, selected, onSelect }: { text: string; find
 
   return (
     <div>
-      <div className="whitespace-pre-wrap font-serif text-[17px] leading-[1.75] text-ink-900">{out}</div>
+      <div className="whitespace-pre-wrap text-[16px] leading-[1.8] text-ink-900">{out}</div>
       {missing.map((f) => (
         <button
           key={f.id}
@@ -789,7 +794,7 @@ function MarkedText({ text, findings, selected, onSelect }: { text: string; find
           onClick={() => onSelect(f.id)}
           className={cx(
             'mt-5 block w-full rounded-md border border-dashed border-amber-400 px-3 py-2 text-left text-[13px] text-amber-900 hover:bg-amber-50',
-            selected === f.id && 'ring-2 ring-ink-900',
+            selected === f.id && 'ring-2 ring-pine-500',
           )}
         >
           Missing: {CATEGORY_LABEL[f.category]?.toLowerCase() ?? 'required text'}
@@ -819,89 +824,110 @@ function FindingRow({ f, selected, busy, editing, onSelect, onEdit, onApply, onD
   };
 
   return (
-    <li
-      id={`finding-${f.id}`}
-      onClick={onSelect}
-      className={cx('cursor-pointer border-b border-line px-4 py-3.5 transition-colors', selected ? 'bg-ink-50' : 'hover:bg-ink-50/60', f.is_applied && 'opacity-60')}
-    >
-      <div className="flex items-center gap-2 text-[12.5px]">
-        <SeverityTag severity={f.severity} />
-        <span className="font-medium text-ink-900">{CATEGORY_LABEL[f.category] ?? f.category}</span>
-        <span className="ml-auto text-[11.5px] text-ink-400">{SOURCE_LABEL[src]}</span>
-      </div>
+    <li id={`finding-${f.id}`} className={cx('border-b border-l-[3px] border-b-line', SEV_META[f.severity]?.edge, selected ? 'bg-ink-50' : 'bg-white', f.is_applied && 'opacity-60')}>
+      <button
+        onClick={onSelect}
+        aria-expanded={selected}
+        className="flex w-full items-start gap-2 px-4 py-3 text-left transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pine-500/60"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2 text-[12.5px]">
+            <SeverityTag severity={f.severity} />
+            <span className="font-medium text-ink-900">{CATEGORY_LABEL[f.category] ?? f.category}</span>
+            <span className="ml-auto shrink-0 text-[11.5px] text-ink-400">{SOURCE_LABEL[src]}</span>
+          </span>
+          <span className={cx('mt-1.5 block text-[13.5px] leading-snug', zeroWidth ? 'italic text-ink-500' : 'font-medium text-ink-900', !selected && 'truncate')}>
+            {zeroWidth ? 'Missing from the text' : `“${f.matched_text}”`}
+          </span>
+          {f.is_applied && (
+            <span className="mt-1 flex items-center gap-1 text-[12px] font-medium text-pine-700">
+              <Check className="h-3.5 w-3.5" /> Suggestion applied
+            </span>
+          )}
+        </span>
+        <ChevronDown className={cx('mt-0.5 h-4 w-4 shrink-0 text-ink-400 transition-transform', selected && 'rotate-180')} aria-hidden />
+      </button>
 
-      {zeroWidth ? (
-        <p className="mt-2 text-[13px] italic text-ink-500">Not present in the text</p>
-      ) : (
-        <p className="mt-2 border-l-2 border-ink-200 pl-2.5 font-serif text-[14.5px] leading-snug text-ink-900">“{f.matched_text}”</p>
-      )}
+      {selected && (
+        <div className="space-y-3 px-4 pb-4">
+          <section>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">Why it matters</h4>
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-700">{f.explanation}</p>
+          </section>
 
-      <p className="mt-2 text-[13px] leading-relaxed text-ink-600">{f.explanation}</p>
-
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-ink-500">
-        <span>{f.source_reference ? `Source: ${f.source_reference}` : 'No configured source'}</span>
-        {f.requires_human_review && <span className="text-amber-800">Needs human verification</span>}
-        {src === 'ai' && <span>{Math.round(f.confidence * 100)}% model confidence</span>}
-      </div>
-
-      {f.is_applied ? (
-        <p className="mt-2.5 flex items-center gap-1 text-[12.5px] font-medium text-pine-700">
-          <Check className="h-3.5 w-3.5" /> Suggestion applied
-        </p>
-      ) : (
-        <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-          {editing !== null ? (
-            <div className="space-y-2">
-              <Field label="Replace with">
-                <input
-                  className={inputCls}
-                  value={editing}
-                  onChange={(e) => onEdit(e.target.value)}
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') onApply(editing);
-                    if (e.key === 'Escape') onEdit(null);
-                  }}
-                />
-              </Field>
-              <div className="flex gap-2">
-                <Button size="sm" variant="primary" disabled={busy} onClick={() => onApply(editing)}>
-                  <CornerDownLeft className="h-3 w-3" /> Apply edit
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => onEdit(null)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {f.suggested_correction && (
-                <div className="mb-2 rounded-md bg-pine-50 px-2.5 py-2 text-[13px]">
-                  <span className="text-[11.5px] font-medium uppercase tracking-wide text-pine-700">Suggested</span>
-                  <p className="mt-0.5 whitespace-pre-wrap font-serif text-[14px] text-ink-900">{f.suggested_correction.trim()}</p>
-                </div>
+          {/* Evidence is kept visually separate from the explanation and the suggestion. */}
+          <section className="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5">
+            <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden />
+            <div className="min-w-0 text-[12.5px]">
+              <p className="font-medium text-ink-800">{src === 'ai' ? 'AI-assisted finding' : src === 'rule' ? 'Brand rule' : 'Built-in check'}</p>
+              <p className={cx('mt-0.5 leading-snug', f.source_reference ? 'text-ink-600' : 'italic text-ink-400')}>
+                {f.source_reference || 'No approved source is attached to this finding.'}
+              </p>
+              {(f.requires_human_review || src === 'ai') && (
+                <p className="mt-1 flex flex-wrap gap-x-3 text-[12px]">
+                  {f.requires_human_review && <span className="text-amber-800">Needs human verification</span>}
+                  {src === 'ai' && <span className="text-ink-500">{Math.round(f.confidence * 100)}% model confidence</span>}
+                </p>
               )}
-              <div className="flex flex-wrap items-center gap-1.5">
-                {f.suggested_correction && (
-                  <>
-                    <Button size="sm" variant="primary" disabled={busy} onClick={stop(() => onApply())}>
-                      Apply
+            </div>
+          </section>
+
+          {!f.is_applied && (
+            <div>
+              {editing !== null ? (
+                <div className="space-y-2">
+                  <Field label="Replace with">
+                    <input
+                      className={inputCls}
+                      value={editing}
+                      onChange={(e) => onEdit(e.target.value)}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') onApply(editing);
+                        if (e.key === 'Escape') onEdit(null);
+                      }}
+                    />
+                  </Field>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="primary" disabled={busy} onClick={() => onApply(editing)}>
+                      <CornerDownLeft className="h-3 w-3" /> Apply edit
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={stop(() => onEdit(f.suggested_correction ?? ''))}>
-                      <Pencil className="h-3 w-3" /> Edit first
+                    <Button size="sm" variant="ghost" onClick={() => onEdit(null)}>
+                      Cancel
                     </Button>
-                  </>
-                )}
-                {!f.suggested_correction && !zeroWidth && (
-                  <Button size="sm" variant="ghost" onClick={stop(() => onEdit(f.matched_text))}>
-                    <Pencil className="h-3 w-3" /> Rewrite
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" className="ml-auto text-ink-500" onClick={stop(onDismiss)}>
-                  Dismiss
-                </Button>
-              </div>
-            </>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {f.suggested_correction && (
+                    <section className="mb-2.5 rounded-lg border border-pine-100 bg-pine-50 px-3 py-2.5">
+                      <h4 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-pine-700">Suggested correction</h4>
+                      <p className="mt-1 whitespace-pre-wrap text-[13.5px] font-medium leading-snug text-ink-900">{f.suggested_correction.trim()}</p>
+                    </section>
+                  )}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {f.suggested_correction && (
+                      <>
+                        <Button size="sm" variant="primary" disabled={busy} onClick={stop(() => onApply())}>
+                          <Check className="h-3.5 w-3.5" /> Apply
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={stop(() => onEdit(f.suggested_correction ?? ''))}>
+                          <Pencil className="h-3 w-3" /> Edit first
+                        </Button>
+                      </>
+                    )}
+                    {!f.suggested_correction && !zeroWidth && (
+                      <Button size="sm" onClick={stop(() => onEdit(f.matched_text))}>
+                        <Pencil className="h-3 w-3" /> Rewrite passage
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" className="ml-auto text-ink-500" onClick={stop(onDismiss)}>
+                      Dismiss
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       )}

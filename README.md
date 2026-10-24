@@ -1,206 +1,169 @@
-# AUDITRA — AI-Powered Brand Governance & Content Review
+# AUDITRA — Brand Governance & Content Review
 
-> **Round 2 — The Build** | Team: **Quoding**  
-> *Pre-publication brand-governance control layer evaluating content against approved brand rules, terminology, facts, claims, and compliance disclosures.*
+> **Techcircuit Round 2 — The Build** · Team **Quoding**
 
----
+AUDITRA checks marketing copy against a brand's approved rules **before it ships**. Every finding points to the exact passage that triggered it and the configured rule or source behind it, offers a targeted correction, and feeds a human approval workflow with a full audit trail.
 
-## 1. Product Overview & Vision
+It is deliberately not a free-form writing assistant: automated checks inform the decision, and a named human reviewer makes it.
 
-AUDITRA is not a generic writing chatbot or grammar checker. It is an **evidence-first, human-controlled brand review and governance control layer**.
+**Live demo:** _not yet deployed — insert the verified URL here_  
+**Repository:** _not yet published — insert the verified URL here_
 
-Every meaningful finding answers six critical governance questions:
-1. **What exact content triggered the finding?** (Exact character offsets and highlighted text spans)
-2. **What rule or approved source is relevant?** (Traceable citation to configured policies, e.g. *Northstar Legal Governance Standard §4.1*)
-3. **Why is the content problematic?** (Grounded explanation derived from brand policies)
-4. **How severe or urgent is the issue?** (Critical, High, Medium, Low)
-5. **What targeted correction addresses it?** (One-click in-place replacement creating an immutable version revision)
-6. **Who reviewed and what decision was made?** (Human approval state machine with chronological audit logging)
+![Review studio with an expanded finding](docs/screenshots/03-finding-expanded.png)
 
 ---
 
-## 2. Architecture & Technology Stack
+## What is implemented
+
+| Area | What works today |
+|---|---|
+| **Workspaces** | Multiple brand workspaces with a switcher. A fictional demo brand, *Northstar Cloud*, is seeded on first start and can be reset from Settings. |
+| **Brand rulebook** | Create, edit, enable/disable and delete rules in six categories (prohibited wording, terminology, required disclosure, restricted claim, tone & voice, style) with severity, match pattern, suggested replacement and source reference. Approved-claims registry. Import of `.txt`/`.md` guideline files: matching lines become rules (created **active**, so review them after import). |
+| **Rule engine** | Deterministic checks with exact character offsets: prohibited phrases, preferred terminology, missing required disclosures, restricted claims, unverified outcome claims and style checks. |
+| **Optional AI step** | If a Gemini, OpenAI or Anthropic key is set, the server also asks the model for findings. Model output is grounded: unknown rule IDs are discarded and offsets are re-located in the actual text. If the call fails, the review completes with rule findings and records `ai_status: failed`. |
+| **Review studio** | Plain-text editor with marked-up view, severity-coded highlights, findings panel with severity counts and source filter, expandable findings (why it matters → brand rule / evidence → suggested correction), apply / edit-then-apply / dismiss, stale-review warnings, version history and discussion. |
+| **Corrections & versions** | Applying a suggestion replaces only the matched passage, creates a new immutable version and is recorded in the audit trail. Re-running the review checks the new version. |
+| **Approval workflow** | Server-enforced states: Draft → In review → Approved / Changes requested / Rejected. Requesting changes or rejecting requires a note. Approving with open critical/high findings shows an explicit warning. |
+| **Approval queue** | Status counts, queue with highest severity and open findings per item, reviewer detail pane with copy, findings, discussion and decision actions. |
+| **Audit trail** | Chronological timeline of server-recorded events (drafts, reviews, corrections, submissions, comments, decisions, rule changes) with actor, time, related content and labelled details. |
+| **Overview & insights** | Dashboard KPIs, items needing attention, workflow status and open findings by severity; insights for findings by category, most-triggered rules, unresolved critical/high findings and decision turnaround. All computed from stored data. |
+| **Demo roles** | “Acting as” switcher: Alex Rivers (Content Creator), Sarah Chen (Brand Compliance Lead), Workspace Admin. **This is a demo convenience, not authentication.** |
+
+---
+
+## Architecture
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        AUDITRA Single-Port Architecture               │
-├────────────────────────────────────────────────────────────────────────┤
-│  Frontend (React 19 + TypeScript + Vite + Tailwind CSS + Lucide Icons) │
-│  - Tri-pane Review Studio with live risk meter & targeted replacements │
-│  - Command Centre Dashboard with real-time KPI metrics                 │
-│  - Brand Rulebook & Verified Claims Registry (Full CRUD + Ingestion)   │
-│  - Approval Queue with reviewer decision controls                      │
-│  - Chronological Append-Only Audit Trail                               │
-│  - Governance Insights & Friction Analytics                            │
-├──────────────────────────────────┬─────────────────────────────────────┤
-│  API Gateway & Server (FastAPI)  │  Deterministic Compliance Engine    │
-│  - RESTful API with validation   │  - Exact & case-insensitive regex   │
-│  - Server-enforced state machine │  - Prohibited phrases & terms       │
-│  - Pydantic v2 schemas           │  - Preferred terminology mapping    │
-│  - SPA static files mount        │  - Mandatory disclosure check       │
-├──────────────────────────────────┼─────────────────────────────────────┤
-│  AI Assistant Layer (Optional)   │  Persistence Layer                  │
-│  - Gemini / OpenAI / Anthropic   │  - SQLite with WAL journal mode     │
-│  - Grounded rule injection       │  - SQLAlchemy 2.0 ORM               │
-│  - Honest deterministic fallback │  - Relational schema with cascades  │
-└──────────────────────────────────┴─────────────────────────────────────┘
+Browser ── React 19 + TypeScript SPA (Vite, Tailwind CSS, lucide-react)
+   │        hash routes: #/overview, #/studio/<id>, #/rulebook, …
+   │  JSON over /api
+   ▼
+FastAPI (single process, also serves frontend/dist)
+   ├── routes/      brands · rules & claims · content · reviews · workflow · audit · dashboard · insights
+   ├── rule_engine  deterministic matcher → findings with offsets + source references
+   ├── ai_service   optional LLM step (Gemini → OpenAI → Anthropic), grounded + fail-safe
+   └── SQLAlchemy 2 ─► SQLite (WAL, foreign keys) — auditra.db
 ```
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS 3.4, Lucide React.
-- **Backend**: Python 3.12, FastAPI, Pydantic v2, Uvicorn, Python-Multipart.
-- **Persistence**: SQLite with Write-Ahead Logging (WAL) and foreign key enforcement via SQLAlchemy ORM (durable file `auditra.db`).
-- **Compliance Engine**: Zero-LLM deterministic regex and token offset matcher.
-- **AI Integration**: Grounded server-side schema with transparent fallback disclosure (`engine: "deterministic" | "hybrid_ai"`).
-- **PDF Generation**: ReportLab document pipeline generating `AUDITRA_Round2_Submission.pdf`.
+**Review data flow:** the studio saves the text as a content version → `POST /api/content/{id}/review` runs the rule engine (and the AI step if configured) against the brand's active rules and claims → findings are stored against that version → applying a finding creates the next version → submit and decision endpoints move the item through the state machine → every step writes an audit event.
 
 ---
 
-## 3. Implemented Features Inventory
+## Run it locally
 
-| Feature | Status | Implementation Details |
-|---|---|---|
-| **First-Run & Sample Workspace** | ✅ Implemented & Tested | Auto-bootstraps "Northstar Cloud" demo workspace with 7 rules, 3 claims, and demo content. One-click reset button available in UI and API. |
-| **Brand Rulebook & Claims Registry** | ✅ Implemented & Tested | Complete CRUD for brand rules across 7 categories (Prohibited, Preferred, Required Disclosures, Restricted Claims, Tone, Style). Upload parser for `.txt` and `.md` guideline documents. Verified claims registry. |
-| **Content Review Studio** | ✅ Implemented & Tested | Tri-pane editor with live word/char counters, risk score gauge (0-100), severity breakdown, finding filters, and targeted recommendation chips. |
-| **Deterministic Rule Engine** | ✅ Implemented & Tested | Token-boundary matching for prohibited phrases, preferred terminology substitutions, missing mandatory disclosure detection, and unverified performance claim flagging. |
-| **Targeted Corrections & Versioning** | ✅ Implemented & Tested | One-click suggestion application. In-place replacement creates version checkpoint (v1 -> v2) and marks finding resolved. Custom edit capability. |
-| **Review & Approval State Machine** | ✅ Implemented & Tested | Strict server-side transition enforcement: `Draft` → `In Review` → `Changes Requested` / `Approved` / `Rejected`. Prevents invalid transitions (e.g. Draft directly to Approved). |
-| **Audit Trail & Event Log** | ✅ Implemented & Tested | Append-only event history capturing draft creation, scans, applied corrections, comments, and decisions with actor roles and timestamps. |
-| **Command Centre Dashboard** | ✅ Implemented & Tested | Aggregated statistics computed from persisted data: Total reviews, Awaiting approval, High-severity issues, Approved reviews, status breakdowns, and recent activity. |
-| **Governance Insights** | ✅ Implemented & Tested | Frequency of violation categories, top friction rules, average turnaround metrics, and hypothesis-driven rule clarity recommendations. |
-| **Demo Persona Switcher** | ✅ Implemented & Tested | Interactive role toggle between *Alex Rivers (Creator)*, *Sarah Chen (Compliance Lead)*, and *Administrator*. |
+Prerequisites: Python 3.10+ (verified on 3.12.7) and Node.js 18+ (verified on 24.16.0).
 
----
-
-## 4. Quickstart & Local Setup
-
-### Prerequisites
-- Python 3.10+ (Tested on Python 3.12.7)
-- Node.js 18+ & npm 9+ (Tested on Node v24.16.0, npm 11.13.0)
-
-### 1. Clone & Setup Backend
 ```bash
-# Navigate to project root
+# 1. Backend dependencies
 python -m venv venv
-
-# Windows PowerShell:
-.\venv\Scripts\activate
-# Linux/macOS:
-# source venv/bin/activate
-
-# Install backend dependencies
+venv\Scripts\activate            # Windows   (macOS/Linux: source venv/bin/activate)
 pip install -r requirements.txt
-```
 
-### 2. Build Frontend Assets
-```bash
+# 2. Build the frontend
 cd frontend
 npm install
 npm run build
 cd ..
+
+# 3. Start the app (API + built frontend on one port)
+uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-### 3. Run the Integrated Application
-```bash
-# Start backend server (serves both API and compiled SPA on a single port)
-uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
-```
-Open your browser at **`http://localhost:8000`** to access the complete application!
+Open **http://localhost:8000**. On first start the database file `auditra.db` is created and the Northstar demo workspace is seeded automatically.
 
-*(Optional development mode: run `npm run dev` inside `frontend/` to run Vite dev server with proxy).*
+For frontend development with hot reload, keep the backend running and run `npm run dev` in `frontend/` (Vite proxies `/api` to port 8000).
+
+### Environment variables
+
+The app reads these from the process environment (there is no `.env` loader, so set them in your shell or hosting platform):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | `sqlite:///./auditra.db` | SQLAlchemy database URL. |
+| `GEMINI_API_KEY` | empty | Enables the AI step via Gemini (checked first). |
+| `OPENAI_API_KEY` | empty | Enables the AI step via OpenAI if no Gemini key. |
+| `ANTHROPIC_API_KEY` | empty | Enables the AI step via Anthropic if neither of the above. |
+
+PowerShell example: `$env:GEMINI_API_KEY = "..." ; uvicorn backend.main:app --port 8000`
+
+With no key set, `/api/health` reports `ai_engine: deterministic_fallback`, the UI shows **Rules only**, and every review runs the rule engine alone. Keys are only read server-side and are never sent to the browser.
 
 ---
 
-## 5. Environment Variables
-
-Create a `.env` file in the project root if you wish to configure optional LLM keys or custom database storage:
-
-```env
-# Optional external AI providers (if omitted, deterministic engine runs with zero disruption)
-GEMINI_API_KEY=""
-OPENAI_API_KEY=""
-ANTHROPIC_API_KEY=""
-
-# Database connection (defaults to SQLite with WAL persistence in ./auditra.db)
-DATABASE_URL="sqlite:///./auditra.db"
-
-# Server configuration
-PROJECT_NAME="AUDITRA"
-VERSION="2.0.0"
-```
-
----
-
-## 6. Verification & Automated Testing
-
-A comprehensive test suite of 10 automated test suites validates the entire product:
+## Tests
 
 ```bash
-# Run all tests using pytest
-$env:PYTHONPATH="." ; .\venv\Scripts\pytest -v tests/
+venv\Scripts\python -m pytest -q tests
 ```
 
-### Test Coverage Highlights:
-- **`test_health_endpoint`**: Verifies API liveness and engine configuration disclosure.
-- **`test_deterministic_rule_engine_violations`**: Tests prohibited phrase detection, preferred terminology flags, missing disclosure detection, and unverified claim detection.
-- **`test_deterministic_rule_engine_clean_content`**: Negative case verification — clean copy generates exactly 0 false positives.
-- **`test_brands_and_sample_workspace`**: Tests workspace bootstrapping and persistence.
-- **`test_content_lifecycle_and_corrections`**: Full journey: Draft creation -> Scan -> 1-click apply correction -> Version bump -> Reviewer decision -> Audit logging.
-- **`test_dashboard_and_insights_endpoints`**: Confirms all statistics and charts compute from real persisted data.
-- **`test_guideline_upload_parsing`**: Verifies text and markdown guideline document ingestion.
-- **`test_claims_crud`**: Tests approved claims registry.
-- **`test_state_machine_strict_enforcement`**: Proves invalid state transitions (e.g. Draft -> Approved directly) are blocked with HTTP 400.
-- **`test_complete_judge_end_to_end_journey`**: Step-by-step automated execution of the 12-step master judge workflow.
+`tests/conftest.py` points `DATABASE_URL` at a temporary SQLite file, so test runs never write into the demo database.
+
+**Verified on 24 Oct 2026:**
+- Backend test suite: **11 passed** (rule engine positives and negatives, workspace seeding, content lifecycle and corrections, creation without `brand_id` in the body, dashboard/insights, guideline upload, claims, state-machine enforcement, end-to-end judge journey).
+- Frontend production build (`npm run build`, which includes `tsc -b`): **succeeds**.
+- Ad-hoc HTTP smoke script (not committed) against a running server on a throwaway database: 21/21 checks (rule create/edit/validation, content creation, rule findings with offsets and source, deterministic fallback, correction → v2, re-review, state machine, dashboard/queue consistency, comments, approval, version history, audit lifecycle, 404 handling), plus persistence of brand, status and audit trail across a server restart.
+- AI failure path: with an invalid provider key, reviews still complete with rule findings and `ai_status: failed`. **A successful live AI call was not tested** (no provider key available).
+- Browser check (Chrome via Playwright) of every screen at 1440×900, 1024×768, 768×1024 and 375×812: no console errors, no failed API calls, no horizontal overflow. Full creator → reviewer journey completed in the UI.
 
 ---
 
-## 7. Judge Demo Walkthrough (3-Minute Tour)
+## Demo walkthrough (about 3 minutes)
 
-Judges can complete a full governance workflow in under three minutes using the fictional **Northstar Cloud** workspace:
+1. **Overview** — open http://localhost:8000. See KPIs, what needs attention and open findings by severity.
+2. **New review** — click *New review*, then *Use sample copy* (fictional promo text that breaks several rules on purpose), then **Run review**.
+3. **Inspect a finding** — expand *Prohibited wording · “guarantees results”*: the explanation, the brand rule (*Northstar Legal Governance Standard §4.1*) and the suggested correction. Clicking a finding jumps to its passage.
+4. **Apply the correction** — click **Apply**. A new version is saved; click **Re-run review** to confirm the issue is gone.
+5. **Submit for approval** — confirm the warning about remaining open findings.
+6. **Decide as reviewer** — switch *Acting as* (bottom of the sidebar) to **Sarah Chen**. Use *Request changes* (note required) or *Approve* in the studio or the **Approval queue**.
+7. **Trace it** — open **Audit trail** to see each step with actor, time and version. Refresh: everything persists.
 
-1. **Open Overview**: Visit `http://localhost:8000`. Notice the Command Centre dashboard with real KPIs, active severity distribution, and recent activity.
-2. **Open Content Reviews**: Click **Content Reviews** in the sidebar. Select *"Q4 Enterprise Cloud Promotion (Demo Scenario)"*.
-3. **Inspect the Findings in Studio**:
-   - Risk score is 55/100 (High Risk).
-   - Flag 1: Prohibited term `"guarantees results"` citing *Northstar Legal Governance Standard §4.1*.
-   - Flag 2: Terminology violation `"users"` citing *Northstar Editorial Style Guide §1.2*.
-   - Flag 3: Restricted claim `"double your performance in seven days"` citing *Northstar Product Claims Manual §3.0*.
-4. **Apply Targeted Correction**:
-   - In the findings panel for `"users"`, click **Apply**.
-   - Watch the editor automatically update `"users"` to `"members"`.
-   - The version automatically advances to Version 2, creating an audit checkpoint.
-5. **Submit for Human Review**:
-   - Click **Submit for Review**. Status transitions from `Draft` to `In Review`.
-6. **Reviewer Decision**:
-   - Switch the active persona in the bottom-left sidebar to **Sarah Chen (Compliance Lead)**.
-   - Reviewer controls appear: click **Approve** (or open the **Approval Queue** tab).
-   - Enter compliance notes and certify release. Status becomes `Approved`.
-7. **Trace in Audit Trail**:
-   - Navigate to the **Audit Trail** tab.
-   - Inspect the chronological log documenting `draft_created`, `analysis_run`, `correction_applied`, `submitted_for_review`, and `content_approved`.
+To return the demo to its starting state: **Settings → Reset demo workspace**. This deletes and re-seeds only the brand with slug `northstar`; other workspaces are untouched.
 
 ---
 
-## 8. Round 1 vs Round 2 Evolution
+## Deployment
 
-- **From Concept to Functional Core**: Round 1 proposed an AI review layer; Round 2 delivered a production-ready full-stack platform with deterministic regex matching, relational database persistence, and an interactive tri-pane review studio.
-- **Evidence-First Grounding**: Instead of relying solely on probabilistic LLMs that hallucinate guidelines, Round 2 introduced strict rule citations grounded in real database records with transparent fallback disclosure.
-- **State Machine Integrity**: Replaced informal status badges with an enforced server-side finite state machine guaranteeing human oversight before content publication.
+AUDITRA runs as a single Python web process that serves both the API and the built SPA, so any host that can run `uvicorn` works (e.g. Render, Railway, Fly.io, a VM):
 
----
+1. Build step: `pip install -r requirements.txt && cd frontend && npm ci && npm run build`
+2. Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+3. Set provider keys as platform secrets if you want the AI step.
+4. SQLite needs a **persistent disk** mounted where `DATABASE_URL` points (e.g. `sqlite:////data/auditra.db`); on ephemeral filesystems data resets on redeploy.
 
-## 9. Proposed Round 3 Strategic Roadmap
-
-1. **Multimodal Brand Governance**:
-   Extend governance from text to marketing graphics, banners, and video assets. Inspect images for brand-palette compliance, logo exclusion zones, contrast accessibility, and embedded image OCR text verification.
-2. **Evidence-Grounded Brand Knowledge & Claim Verification**:
-   Incorporate high-precision semantic retrieval (RAG) over authoritative internal documents (10-K filings, SOC2 audits, lab whitepapers) with automated provenance tracking and freshness expiration dates.
-3. **Enterprise Governance & Publishing Integrations**:
-   Introduce multi-tenant organizational hierarchies, SSO/SAML 2.0, dual-custody approval gates for high-risk legal claims, and direct CMS publishing connectors for HubSpot, WordPress, and social scheduling platforms.
+**Status:** no deployment is configured in this repository and no public URL has been verified yet. Once verified, put the URLs in the *Live demo* / *Repository* lines at the top of this README and in `LIVE_URL` / `REPO_URL` at the top of `generate_submission_pdf.py`, then run `python generate_submission_pdf.py`.
 
 ---
 
-## 10. License & Team
+## Known limitations and security notes
 
-Built with pride for **Techcircuit Round 2** by team **Quoding**.  
-Submission document: `AUDITRA_Round2_Submission.pdf` (included in repository root).
+- **No authentication or authorisation.** The role switcher is for demonstration only; anyone with access can act as any role. Do not expose a deployment with real content without adding auth.
+- **CORS allows all origins** (`CORS_ORIGINS = ["*"]` in `backend/config.py`); restrict it for a real deployment.
+- The audit trail is an append-only *application* log in an ordinary database table, not a tamper-proof ledger.
+- Guideline import accepts UTF-8 text/Markdown only and creates **active** rules immediately — an imported document takes effect before anyone reviews it. No PDF/DOCX extraction.
+- No structured evaluation yet (detection rate, false positives, reviewer agreement) and no user interviews.
+- The rule engine is pattern-based: it does not understand paraphrases. The AI step can catch more, but its findings are marked as AI-assisted and may need human verification.
+- The backend still computes a weighted `risk_score`; it is shown only in audit details, not as a verdict in the UI.
+- Text content only; no images, video or rich text.
+- SQLite is single-node; use a server database for concurrent multi-user production use.
+
+---
+
+## Round 3 roadmap
+
+1. **Multimodal brand governance** — check banners and social creatives for palette, logo usage, contrast and OCR'd on-image text against the same rulebook.
+2. **Evidence-grounded brand knowledge and claim verification** — retrieve from approved source documents so every claim is matched to a dated, attributable source.
+3. **Enterprise governance and publishing integrations** — SSO and real roles, multi-step approval policies, and connectors so only approved versions reach CMS and scheduling tools.
+
+---
+
+## Repository layout
+
+```
+backend/            FastAPI app, models, rule engine, AI service, seed data, routes/
+frontend/           React + TypeScript SPA (src/pages, src/components)
+tests/              pytest suite (isolated database via conftest.py)
+docs/screenshots/   screenshots of the running app (1440×900, demo workspace)
+generate_submission_pdf.py   builds AUDITRA_Round2_Submission.pdf
+```
+
+Team **Quoding** — Arya Kashyap (Team Leader), Ronit Mongia, Moli Verma.

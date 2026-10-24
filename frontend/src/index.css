@@ -17,21 +17,26 @@
   }
 
   ::selection {
-    background: #d6e8dd;
+    background: #CCEFE8;
+  }
+
+  :focus-visible {
+    outline: 2px solid #0F9488;
+    outline-offset: 2px;
   }
 }
 
 /* Quiet scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbc7bf transparent;
+  scrollbar-color: #D0D5DD transparent;
 }
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d9d5ce;
+  background: #D0D5DD;
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
