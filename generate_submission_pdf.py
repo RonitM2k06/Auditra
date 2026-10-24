@@ -104,7 +104,7 @@ def links_callout():
     repo = (f"<link href='{REPO_URL}' color='#0F9488'>{REPO_URL}</link>" if REPO_URL
             else "not yet published; no remote is configured for the local repository.")
     return callout(f"<b>Live application:</b> {live}<br/><b>Source repository:</b> {repo}<br/>"
-                   "These links will be added once the team publishes the repository and deploys the app.",
+                   + ("The live link will be added once the app is deployed and verified." if not LIVE_URL else "The repository link will be added once it is published."),
                    bg=AMBER_BG, border=AMBER)
 
 
@@ -301,7 +301,7 @@ def build():
             ["Database: PostgreSQL (SQLite for prototype)", "<b>SQLite</b>, configurable through DATABASE_URL; not tested on PostgreSQL."],
             ["Multiple brand workspaces (could-have)", "<b>Built.</b>"],
             ["Testing with sample brands; user feedback", "<b>Partial.</b> Automated tests and a browser walkthrough on a fictional brand; no user interviews and no false-positive measurement yet."],
-            ["Deployed prototype and judge-accessible repository", "<b>Pending.</b> Not deployed and not yet pushed at the time of writing."],
+            ["Deployed prototype and judge-accessible repository", ("<b>Partial.</b> Repository published at " + REPO_URL + "; the app is not yet deployed." if REPO_URL and not LIVE_URL else "<b>Built.</b> Repository and live demo are linked under Project links." if REPO_URL else "<b>Pending.</b> Not deployed and not yet pushed at the time of writing.")],
         ], [62 * mm, CONTENT_W - 62 * mm]),
         Spacer(1, 14),
     ]
