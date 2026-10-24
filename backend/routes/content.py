@@ -77,7 +77,9 @@ def get_content_item_detail(content_id: str, db: Session = Depends(get_db)):
 
     latest_review = None
     if current_ver:
-        run = db.query(ReviewRun).filter(ReviewRun.content_version_id == current_ver.id).order_by(ReviewRun.created_at.desc()).first()
+        # Return the most recent review for the item, even if it was run on an
+        # earlier version; clients compare content_version_id to detect staleness.
+        run = db.query(ReviewRun).filter(ReviewRun.content_id == content_id).order_by(ReviewRun.created_at.desc()).first()
         if run:
             findings_recs = db.query(Finding).filter(Finding.review_run_id == run.id).all()
             findings_data = [

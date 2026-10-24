@@ -33,10 +33,22 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export interface HealthStatus {
+  status: string;
+  service: string;
+  version: string;
+  ai_engine: 'configured' | 'deterministic_fallback';
+  database: string;
+}
+
 export const api = {
+  health: () => request<HealthStatus>('/health'),
+
   // Brands
   getBrands: () => request<Brand[]>('/brands'),
   createBrand: (data: Partial<Brand>) => request<Brand>('/brands', { method: 'POST', body: JSON.stringify(data) }),
+  updateBrand: (brandId: string, data: Partial<Brand>) =>
+    request<Brand>(`/brands/${brandId}`, { method: 'PUT', body: JSON.stringify(data) }),
   resetSampleBrand: () => request<Brand>('/brands/sample/reset', { method: 'POST' }),
 
   // Rules & Claims
@@ -84,7 +96,7 @@ export const api = {
   // Reviews & Findings
   runReview: (contentId: string, data?: { actor_name?: string; actor_role?: string; force_engine?: string }) =>
     request<ReviewRun>(`/content/${contentId}/review`, { method: 'POST', body: JSON.stringify(data || {}) }),
-  applyCorrection: (findingId: string, data: { custom_replacement?: string; actor_name?: string; actor_role?: string }) =>
+  applyCorrection: (findingId: string, data: { custom_replacement?: string; occurrence_offset?: number; actor_name?: string; actor_role?: string }) =>
     request<ContentItemDetail>(`/findings/${findingId}/apply`, { method: 'POST', body: JSON.stringify(data) }),
   dismissFinding: (findingId: string, actor_name?: string) =>
     request<Finding>(`/findings/${findingId}/dismiss?actor_name=${encodeURIComponent(actor_name || 'Reviewer')}`, { method: 'POST' }),

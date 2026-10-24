@@ -1,220 +1,247 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { Navbar } from './components/Navbar';
-import { OverviewDashboard } from './components/OverviewDashboard';
-import { ContentReviewsList } from './components/ContentReviewsList';
-import { ReviewStudio } from './components/ReviewStudio';
-import { BrandRulebook } from './components/BrandRulebook';
-import { ApprovalQueue } from './components/ApprovalQueue';
-import { AuditTrail } from './components/AuditTrail';
-import { GovernanceInsights } from './components/GovernanceInsights';
-import { SettingsView } from './components/SettingsView';
+import { Topbar } from './components/Topbar';
 import { NewBrandModal } from './components/NewBrandModal';
-import { ToastContainer, ToastMessage } from './components/Toast';
-import { Brand } from './types';
-import { api } from './api';
+import { ACTORS, Button, ConfirmProvider, Logo, ToastProvider, useConfirm, useToast, type Role } from './components/ui';
+import { Overview } from './pages/Overview';
+import { Reviews } from './pages/Reviews';
+import { Studio } from './pages/Studio';
+import { Rulebook } from './pages/Rulebook';
+import { Approvals } from './pages/Approvals';
+import { Audit } from './pages/Audit';
+import { Insights } from './pages/Insights';
+import { Settings } from './pages/Settings';
+import type { Brand } from './types';
+import { api, type HealthStatus } from './api';
 
-export function App() {
-  const [currentTab, setCurrentTab] = useState<string>('overview');
+const PAGES = ['overview', 'reviews', 'studio', 'rulebook', 'approvals', 'audit', 'insights', 'settings'];
+type Route = { page: string; id: string | null };
+
+/** Hash routes (#/studio/<id>) so every screen survives a refresh and can be linked. */
+function parseHash(): Route {
+  const [, page, id] = (window.location.hash.replace(/^#/, '') || '/overview').split('/');
+  return { page: PAGES.includes(page) ? page : 'overview', id: id || null };
+}
+
+function Shell() {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [route, setRoute] = useState<Route>(parseHash);
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
-  const [activeContentId, setActiveContentId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<'creator' | 'reviewer' | 'admin'>('creator');
-  const [pendingApprovalCount, setPendingApprovalCount] = useState<number>(0);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [showNewBrandModal, setShowNewBrandModal] = useState<boolean>(false);
-  const [bootstrapping, setBootstrapping] = useState<boolean>(true);
+  const [brand, setBrand] = useState<Brand | null>(null);
+  const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [role, setRoleState] = useState<Role>(() => {
+    const stored = localStorage.getItem('auditra.role');
+    return stored && stored in ACTORS ? (stored as Role) : 'creator';
+  });
+  const [queueCount, setQueueCount] = useState(0);
+  const [navOpen, setNavOpen] = useState(false);
+  const [newBrandOpen, setNewBrandOpen] = useState(false);
+  const [boot, setBoot] = useState<'loading' | 'ready' | 'error'>('loading');
 
-  // Toast helper
-  const showToast = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, text, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4500);
-  };
-
-  const dismissToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  // Initial load
   useEffect(() => {
-    bootstrapApp();
+    const onHash = () => {
+      setRoute(parseHash());
+      setNavOpen(false);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  const bootstrapApp = async () => {
-    setBootstrapping(true);
+  const navigate = useCallback((page: string, id?: string | null, replace = false) => {
+    const hash = `#/${page}${id ? `/${id}` : ''}`;
+    if (replace) window.history.replaceState(null, '', hash);
+    else if (window.location.hash !== hash) window.location.hash = hash;
+    setRoute({ page, id: id ?? null });
+    setNavOpen(false);
+  }, []);
+
+  const refreshQueue = useCallback(() => {
+    if (!brand) return;
+    api.getContentItems(brand.id, 'in_review').then((i) => setQueueCount(i.length)).catch(() => undefined);
+  }, [brand]);
+
+  const load = useCallback(async () => {
+    setBoot('loading');
     try {
-      const brandList = await api.getBrands();
-      setBrands(brandList);
-      if (brandList.length > 0) {
-        // Prefer sample brand Northstar or first brand
-        const defaultBrand = brandList.find((b) => b.is_sample) || brandList[0];
-        setSelectedBrand(defaultBrand);
-        fetchQueueCount(defaultBrand.id);
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Error connecting to AUDITRA API', 'error');
-    } finally {
-      setBootstrapping(false);
+      const [list, h] = await Promise.all([api.getBrands(), api.health().catch(() => null)]);
+      setBrands(list);
+      setHealth(h);
+      const saved = localStorage.getItem('auditra.brand');
+      setBrand(list.find((b) => b.id === saved) ?? list.find((b) => b.is_sample) ?? list[0] ?? null);
+      setBoot('ready');
+    } catch {
+      setBoot('error');
     }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!brand) return;
+    localStorage.setItem('auditra.brand', brand.id);
+    refreshQueue();
+  }, [brand, refreshQueue]);
+
+  const setRole = (r: Role) => {
+    setRoleState(r);
+    localStorage.setItem('auditra.role', r);
+    toast(`Now acting as ${ACTORS[r].name}, ${ACTORS[r].role.toLowerCase()}.`, 'info');
   };
 
-  const fetchQueueCount = async (brandId: string) => {
-    try {
-      const items = await api.getContentItems(brandId, 'in_review');
-      setPendingApprovalCount(items.length);
-    } catch (_) {}
+  const selectBrand = (b: Brand) => {
+    setBrand(b);
+    if (route.page === 'studio') navigate('reviews');
   };
 
-  const handleResetSample = async () => {
-    if (!window.confirm("Reset 'Northstar Cloud' demo workspace to default state?")) return;
+  const resetDemo = async () => {
+    const ok = await confirm({
+      title: 'Reset the demo workspace?',
+      body: 'Northstar goes back to its starting rules, claims, and sample content. Changes you made in it are removed.',
+      confirmLabel: 'Reset',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const sample = await api.resetSampleBrand();
-      showToast("Reset 'Northstar Cloud' workspace with 7 rules, 3 claims, and demo content", 'success');
-      const refreshedList = await api.getBrands();
-      setBrands(refreshedList);
-      setSelectedBrand(sample);
-      fetchQueueCount(sample.id);
-      setCurrentTab('overview');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to reset sample workspace', 'error');
+      const list = await api.getBrands();
+      setBrands(list);
+      setBrand(sample);
+      navigate('overview');
+      toast('Demo workspace reset.', 'success');
+    } catch (e: any) {
+      toast(e.message, 'error');
     }
   };
 
-  const handleOpenContentInStudio = (contentId: string) => {
-    setActiveContentId(contentId);
-    setCurrentTab('studio');
-  };
+  if (boot === 'loading') {
+    return <div className="flex h-full items-center justify-center text-[13px] text-ink-500">Loading workspace…</div>;
+  }
 
-  const handleNewReview = () => {
-    setActiveContentId(null);
-    setCurrentTab('studio');
-  };
-
-  if (bootstrapping) {
+  if (boot === 'error') {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-navy-950 text-white font-sans">
-        <div className="w-10 h-10 border-3 border-brand-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <div className="text-sm font-semibold tracking-wide text-brand-400">INITIALIZING AUDITRA WORKSPACE</div>
-        <div className="text-xs text-slate-400 mt-1">Grounded Brand Governance & Review Control Layer</div>
+      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+        <Logo />
+        <p className="mt-2 text-[14px] text-ink-800">Can’t reach the Auditra server.</p>
+        <p className="max-w-sm text-[13px] text-ink-500">Check that the backend is running, then try again.</p>
+        <Button onClick={load}>Try again</Button>
       </div>
     );
   }
 
-  return (
-    <div className="flex h-screen w-screen overflow-hidden bg-surface-base font-sans antialiased text-dark-primary">
-      {/* Sidebar Navigation */}
-      <Sidebar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        brands={brands}
-        selectedBrand={selectedBrand}
-        onSelectBrand={(b) => {
-          setSelectedBrand(b);
-          fetchQueueCount(b.id);
-        }}
-        userRole={userRole}
-        setUserRole={setUserRole}
-        pendingApprovalCount={pendingApprovalCount}
-        onResetSample={handleResetSample}
-        onOpenNewBrandModal={() => setShowNewBrandModal(true)}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Navbar */}
-        <Navbar
-          currentTab={currentTab}
-          selectedBrand={selectedBrand}
-          userRole={userRole}
-          onNewReviewClick={handleNewReview}
+  if (!brand) {
+    return (
+      <div className="flex h-full items-center justify-center px-6">
+        <div className="w-full max-w-md">
+          <Logo />
+          <h1 className="mt-8 font-serif text-[28px] leading-tight text-ink-900">Check content against your brand rules before it ships.</h1>
+          <p className="mt-3 text-[14px] leading-relaxed text-ink-600">
+            Start with the Northstar demo (a fictional brand with rules and sample copy already set up) or create an empty workspace for your own brand.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              onClick={async () => {
+                try {
+                  const b = await api.resetSampleBrand();
+                  setBrands([b]);
+                  setBrand(b);
+                } catch (e: any) {
+                  toast(e.message, 'error');
+                }
+              }}
+            >
+              Open the demo workspace
+            </Button>
+            <Button onClick={() => setNewBrandOpen(true)}>Create a workspace</Button>
+          </div>
+        </div>
+        <NewBrandModal
+          open={newBrandOpen}
+          onClose={() => setNewBrandOpen(false)}
+          onCreated={(b) => {
+            setBrands([b]);
+            setBrand(b);
+            navigate('rulebook');
+          }}
         />
-
-        {/* View Router */}
-        {selectedBrand && (
-          <main className="flex-1 flex overflow-hidden">
-            {currentTab === 'overview' && (
-              <OverviewDashboard
-                brand={selectedBrand}
-                onOpenContent={handleOpenContentInStudio}
-                onNavigateTab={setCurrentTab}
-                showToast={showToast}
-              />
-            )}
-
-            {currentTab === 'reviews' && (
-              <ContentReviewsList
-                brand={selectedBrand}
-                onOpenContent={handleOpenContentInStudio}
-                onNewReview={handleNewReview}
-                showToast={showToast}
-              />
-            )}
-
-            {currentTab === 'studio' && (
-              <ReviewStudio
-                contentId={activeContentId}
-                brandId={selectedBrand.id}
-                userRole={userRole}
-                onReviewCompleted={() => fetchQueueCount(selectedBrand.id)}
-                onNavigateToReviews={() => setCurrentTab('reviews')}
-                showToast={showToast}
-              />
-            )}
-
-            {currentTab === 'rulebook' && (
-              <BrandRulebook brand={selectedBrand} showToast={showToast} />
-            )}
-
-            {currentTab === 'approvals' && (
-              <ApprovalQueue
-                brand={selectedBrand}
-                userRole={userRole}
-                onOpenContent={handleOpenContentInStudio}
-                showToast={showToast}
-              />
-            )}
-
-            {currentTab === 'audit' && (
-              <AuditTrail brand={selectedBrand} showToast={showToast} />
-            )}
-
-            {currentTab === 'insights' && (
-              <GovernanceInsights brand={selectedBrand} showToast={showToast} />
-            )}
-
-            {currentTab === 'settings' && (
-              <SettingsView
-                brand={selectedBrand}
-                onBrandUpdated={(updated) => {
-                  setSelectedBrand(updated);
-                  setBrands(brands.map((b) => (b.id === updated.id ? updated : b)));
-                }}
-                onResetSample={handleResetSample}
-                showToast={showToast}
-              />
-            )}
-          </main>
-        )}
       </div>
+    );
+  }
 
-      {/* New Brand Modal */}
-      <NewBrandModal
-        isOpen={showNewBrandModal}
-        onClose={() => setShowNewBrandModal(false)}
-        onBrandCreated={(newB) => {
-          setBrands([newB, ...brands]);
-          setSelectedBrand(newB);
-        }}
-        showToast={showToast}
+  const page = () => {
+    switch (route.page) {
+      case 'reviews':
+        return <Reviews brand={brand} navigate={navigate} onChanged={refreshQueue} />;
+      case 'studio':
+        return <Studio brand={brand} contentId={route.id} role={role} navigate={navigate} onChanged={refreshQueue} />;
+      case 'rulebook':
+        return <Rulebook brand={brand} />;
+      case 'approvals':
+        return <Approvals brand={brand} role={role} navigate={navigate} onChanged={refreshQueue} />;
+      case 'audit':
+        return <Audit brand={brand} navigate={navigate} />;
+      case 'insights':
+        return <Insights brand={brand} />;
+      case 'settings':
+        return (
+          <Settings
+            brand={brand}
+            health={health}
+            onResetDemo={resetDemo}
+            onBrandUpdated={(b) => {
+              setBrand(b);
+              setBrands((list) => list.map((x) => (x.id === b.id ? b : x)));
+            }}
+          />
+        );
+      default:
+        return <Overview brand={brand} navigate={navigate} />;
+    }
+  };
+
+  return (
+    <div className="flex h-full">
+      <Sidebar
+        page={route.page}
+        navigate={navigate}
+        brands={brands}
+        brand={brand}
+        onSelectBrand={selectBrand}
+        onNewBrand={() => setNewBrandOpen(true)}
+        role={role}
+        setRole={setRole}
+        queueCount={queueCount}
+        open={navOpen}
+        onClose={() => setNavOpen(false)}
       />
-
-      {/* Floating Notifications */}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Topbar brand={brand} page={route.page} onMenu={() => setNavOpen(true)} health={health} />
+        <main key={brand.id} className="flex min-h-0 flex-1 flex-col">
+          {page()}
+        </main>
+      </div>
+      <NewBrandModal
+        open={newBrandOpen}
+        onClose={() => setNewBrandOpen(false)}
+        onCreated={(b) => {
+          setBrands((list) => [b, ...list]);
+          setBrand(b);
+          navigate('rulebook');
+        }}
+      />
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ToastProvider>
+      <ConfirmProvider>
+        <Shell />
+      </ConfirmProvider>
+    </ToastProvider>
+  );
+}

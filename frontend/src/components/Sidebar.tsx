@@ -1,260 +1,187 @@
-import React from 'react';
-import {
-  LayoutDashboard,
-  FileCheck2,
-  FileEdit,
-  BookOpen,
-  CheckCircle2,
-  History,
-  BarChart3,
-  Settings,
-  ShieldCheck,
-  ChevronDown,
-  Building2,
-  UserCheck,
-  RotateCcw
-} from 'lucide-react';
-import { Brand } from '../types';
+import { useEffect, useRef, useState } from 'react';
+import { BarChart2, BookOpen, Check, ChevronsUpDown, FileText, History, Inbox, LayoutGrid, Plus, Settings, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { ACTORS, Button, cx, Logo, type Role } from './ui';
+import type { Brand } from '../types';
+
+type NavEntry = { id: string; label: string; icon: LucideIcon; showCount?: boolean };
+
+const NAV: Array<{ group: string | null; items: NavEntry[] }> = [
+  {
+    group: null,
+    items: [
+      { id: 'overview', label: 'Overview', icon: LayoutGrid },
+      { id: 'reviews', label: 'Content reviews', icon: FileText },
+      { id: 'approvals', label: 'Approval queue', icon: Inbox, showCount: true },
+    ],
+  },
+  { group: 'Policy', items: [{ id: 'rulebook', label: 'Brand rulebook', icon: BookOpen }] },
+  {
+    group: 'Records',
+    items: [
+      { id: 'audit', label: 'Audit trail', icon: History },
+      { id: 'insights', label: 'Insights', icon: BarChart2 },
+    ],
+  },
+];
 
 interface SidebarProps {
-  currentTab: string;
-  setCurrentTab: (tab: string) => void;
+  page: string;
+  navigate: (page: string, id?: string | null) => void;
   brands: Brand[];
-  selectedBrand: Brand | null;
-  onSelectBrand: (brand: Brand) => void;
-  userRole: 'creator' | 'reviewer' | 'admin';
-  setUserRole: (role: 'creator' | 'reviewer' | 'admin') => void;
-  pendingApprovalCount: number;
-  onResetSample: () => void;
-  onOpenNewBrandModal: () => void;
+  brand: Brand | null;
+  onSelectBrand: (b: Brand) => void;
+  onNewBrand: () => void;
+  role: Role;
+  setRole: (r: Role) => void;
+  queueCount: number;
+  open: boolean;
+  onClose: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  currentTab,
-  setCurrentTab,
-  brands,
-  selectedBrand,
-  onSelectBrand,
-  userRole,
-  setUserRole,
-  pendingApprovalCount,
-  onResetSample,
-  onOpenNewBrandModal,
-}) => {
-  const [brandDropdownOpen, setBrandDropdownOpen] = React.useState(false);
-  const [roleDropdownOpen, setRoleDropdownOpen] = React.useState(false);
+export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBrand, role, setRole, queueCount, open, onClose }: SidebarProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const active = page === 'studio' ? 'reviews' : page;
 
-  const navItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'reviews', label: 'Content Reviews', icon: FileCheck2 },
-    { id: 'studio', label: 'Review Studio', icon: FileEdit, badge: 'Live' },
-    { id: 'rulebook', label: 'Brand Rulebook', icon: BookOpen },
-    {
-      id: 'approvals',
-      label: 'Approval Queue',
-      icon: CheckCircle2,
-      count: pendingApprovalCount,
-    },
-    { id: 'audit', label: 'Audit Trail', icon: History },
-    { id: 'insights', label: 'Governance Insights', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [menuOpen]);
 
-  const roleLabels = {
-    creator: { title: 'Alex Rivers', subtitle: 'Content Creator' },
-    reviewer: { title: 'Sarah Chen', subtitle: 'Brand Compliance Lead' },
-    admin: { title: 'System Admin', subtitle: 'Governance Admin' },
+  const item = (n: NavEntry) => {
+    const Icon = n.icon;
+    const isActive = active === n.id;
+    return (
+      <button
+        key={n.id}
+        onClick={() => navigate(n.id)}
+        aria-current={isActive ? 'page' : undefined}
+        className={cx(
+          'flex w-full items-center gap-2.5 rounded-md px-2 py-[7px] text-[13.5px] transition-colors',
+          isActive ? 'bg-white font-medium text-ink-900 ring-1 ring-line' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900',
+        )}
+      >
+        <Icon className={cx('h-4 w-4', isActive ? 'text-ink-900' : 'text-ink-400')} strokeWidth={1.75} />
+        <span className="flex-1 text-left">{n.label}</span>
+        {n.showCount && queueCount > 0 && (
+          <span className="min-w-[20px] rounded-full bg-ink-900 px-1.5 text-center text-[11px] font-medium leading-[18px] text-white">{queueCount}</span>
+        )}
+      </button>
+    );
   };
 
   return (
-    <aside className="w-64 bg-navy-900 text-slate-300 flex flex-col h-screen border-r border-navy-800 select-none z-20 shrink-0">
-      {/* Brand Header */}
-      <div className="p-5 border-b border-navy-800/80">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-bold text-lg">
-            <ShieldCheck className="w-5 h-5 text-navy-950" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold tracking-tight text-white font-sans">AUDITRA</span>
-              <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-brand-500/20 text-brand-300 rounded border border-brand-500/30">
-                v2.0
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium">Brand Governance Engine</p>
-          </div>
+    <>
+      {open && <div className="fixed inset-0 z-30 bg-ink-900/20 lg:hidden" onClick={onClose} aria-hidden />}
+      <aside
+        className={cx(
+          'fixed inset-y-0 left-0 z-40 flex w-[244px] shrink-0 flex-col border-r border-line bg-ink-50 transition-transform duration-200 lg:static lg:translate-x-0',
+          open ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <div className="flex h-12 items-center justify-between px-4">
+          <Logo />
+          <button onClick={onClose} className="rounded p-1 text-ink-500 hover:bg-ink-100 lg:hidden" aria-label="Close navigation">
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* Workspace Switcher */}
-        <div className="relative mt-4">
+        {/* Workspace switcher */}
+        <div className="relative px-3" ref={menuRef}>
           <button
-            onClick={() => setBrandDropdownOpen(!brandDropdownOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 text-xs bg-navy-850 hover:bg-navy-800 rounded-lg border border-navy-700/60 text-slate-200 transition-colors"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={menuOpen}
+            className="flex w-full items-center gap-2.5 rounded-md border border-line bg-white px-2 py-1.5 text-left hover:border-ink-300"
           >
-            <div className="flex items-center gap-2 truncate">
-              <Building2 className="w-3.5 h-3.5 text-brand-400 shrink-0" />
-              <span className="truncate font-medium">{selectedBrand?.name || 'Select Workspace'}</span>
-              {selectedBrand?.is_sample && (
-                <span className="text-[9px] bg-brand-500/20 text-brand-300 px-1 py-0.2 rounded font-mono">
-                  DEMO
-                </span>
-              )}
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span
+              className="grid h-6 w-6 shrink-0 place-items-center rounded text-[12px] font-semibold text-white"
+              style={{ backgroundColor: brand?.secondary_color || '#1b1a18' }}
+            >
+              {brand?.name.charAt(0) ?? '?'}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium text-ink-900">{brand?.name ?? 'No workspace'}</span>
+              <span className="block truncate text-[11.5px] text-ink-500">{brand?.is_sample ? 'Demo workspace' : brand?.industry}</span>
+            </span>
+            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-ink-400" />
           </button>
 
-          {brandDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-navy-850 border border-navy-700 rounded-lg shadow-2xl py-1 z-50 text-xs">
-              <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                Workspaces
-              </div>
+          {menuOpen && (
+            <div role="listbox" className="absolute left-3 right-3 top-full z-50 mt-1 rounded-md border border-line bg-white py-1 shadow-lg shadow-ink-900/5">
+              <p className="px-3 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-400">Workspaces</p>
               {brands.map((b) => (
                 <button
                   key={b.id}
+                  role="option"
+                  aria-selected={b.id === brand?.id}
                   onClick={() => {
                     onSelectBrand(b);
-                    setBrandDropdownOpen(false);
+                    setMenuOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-navy-800 transition-colors ${
-                    selectedBrand?.id === b.id ? 'text-brand-400 font-semibold bg-navy-800/40' : 'text-slate-300'
-                  }`}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-ink-800 hover:bg-ink-50"
                 >
-                  <span className="truncate">{b.name}</span>
-                  {b.is_sample && <span className="text-[9px] text-slate-400">Sample</span>}
+                  <span className="flex-1 truncate">{b.name}</span>
+                  {b.is_sample && <span className="text-[11px] text-ink-400">demo</span>}
+                  {b.id === brand?.id && <Check className="h-3.5 w-3.5 text-ink-900" />}
                 </button>
               ))}
-              <div className="border-t border-navy-700/60 mt-1 pt-1">
+              <div className="mt-1 border-t border-line pt-1">
                 <button
                   onClick={() => {
-                    setBrandDropdownOpen(false);
-                    onOpenNewBrandModal();
+                    setMenuOpen(false);
+                    onNewBrand();
                   }}
-                  className="w-full text-left px-3 py-1.5 text-slate-300 hover:text-white hover:bg-navy-800 flex items-center gap-2"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-ink-600 hover:bg-ink-50 hover:text-ink-900"
                 >
-                  + Create Brand
-                </button>
-                <button
-                  onClick={() => {
-                    setBrandDropdownOpen(false);
-                    onResetSample();
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-slate-400 hover:text-brand-300 hover:bg-navy-800 flex items-center gap-2"
-                >
-                  <RotateCcw className="w-3 h-3 text-slate-400" />
-                  Reset Northstar Demo
+                  <Plus className="h-3.5 w-3.5" /> New workspace
                 </button>
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setCurrentTab(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-brand-500/15 text-brand-300 border border-brand-500/30 shadow-sm'
-                  : 'text-slate-300 hover:bg-navy-850 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-brand-400' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {item.badge && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-brand-500 text-navy-950">
-                    {item.badge}
-                  </span>
-                )}
-                {item.count !== undefined && item.count > 0 && (
-                  <span className="px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    {item.count}
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Role / Persona Switcher for Hackathon Testing */}
-      <div className="p-3 border-t border-navy-800/80 bg-navy-950/60">
-        <div className="text-[10px] uppercase font-semibold text-slate-400 px-1 mb-1.5 flex items-center justify-between">
-          <span>Active Persona</span>
-          <span className="text-[9px] text-slate-400">Demo Role</span>
+        <div className="px-3 pt-3">
+          <Button variant="primary" className="w-full" onClick={() => navigate('studio')}>
+            <Plus className="h-3.5 w-3.5" /> New review
+          </Button>
         </div>
 
-        <div className="relative">
-          <button
-            onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-            className="w-full flex items-center justify-between p-2 bg-navy-850 hover:bg-navy-800 rounded-lg border border-navy-700 text-left transition-colors"
+        <nav className="mt-5 flex-1 space-y-5 overflow-y-auto px-2" aria-label="Main">
+          {NAV.map((g, i) => (
+            <div key={i}>
+              {g.group && <p className="mb-1 px-2 text-[11px] font-medium uppercase tracking-wider text-ink-400">{g.group}</p>}
+              <div className="space-y-px">{g.items.map(item)}</div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="px-2 pb-2">{item({ id: 'settings', label: 'Settings', icon: Settings })}</div>
+
+        <div className="border-t border-line p-3">
+          <label htmlFor="role-select" className="block text-[11px] font-medium uppercase tracking-wider text-ink-400">
+            Acting as
+          </label>
+          <select
+            id="role-select"
+            value={role}
+            onChange={(e) => setRole(e.target.value as Role)}
+            className="mt-1.5 w-full rounded-md border border-line bg-white px-2 py-1.5 text-[13px] text-ink-900 focus:border-ink-400 focus:outline-none"
           >
-            <div className="flex items-center gap-2.5 truncate">
-              <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs text-white">
-                <UserCheck className="w-3.5 h-3.5 text-brand-400" />
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-semibold text-slate-200 truncate leading-none mb-1">
-                  {roleLabels[userRole].title}
-                </div>
-                <div className="text-[10px] text-slate-400 truncate leading-none">
-                  {roleLabels[userRole].subtitle}
-                </div>
-              </div>
-            </div>
-            <ChevronDown className="w-3 h-3 text-slate-400" />
-          </button>
-
-          {roleDropdownOpen && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-navy-850 border border-navy-700 rounded-lg shadow-2xl py-1 z-50 text-xs">
-              <button
-                onClick={() => {
-                  setUserRole('creator');
-                  setRoleDropdownOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 hover:bg-navy-800 ${
-                  userRole === 'creator' ? 'text-brand-400 font-semibold' : 'text-slate-300'
-                }`}
-              >
-                <div className="font-medium">Alex Rivers (Creator)</div>
-                <div className="text-[10px] text-slate-400">Draft, edit, and apply fixes</div>
-              </button>
-              <button
-                onClick={() => {
-                  setUserRole('reviewer');
-                  setRoleDropdownOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 hover:bg-navy-800 ${
-                  userRole === 'reviewer' ? 'text-brand-400 font-semibold' : 'text-slate-300'
-                }`}
-              >
-                <div className="font-medium">Sarah Chen (Compliance Lead)</div>
-                <div className="text-[10px] text-slate-400">Approve, reject, request changes</div>
-              </button>
-              <button
-                onClick={() => {
-                  setUserRole('admin');
-                  setRoleDropdownOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 hover:bg-navy-800 ${
-                  userRole === 'admin' ? 'text-brand-400 font-semibold' : 'text-slate-300'
-                }`}
-              >
-                <div className="font-medium">Administrator</div>
-                <div className="text-[10px] text-slate-400">Full system & rule controls</div>
-              </button>
-            </div>
-          )}
+            {(Object.keys(ACTORS) as Role[]).map((r) => (
+              <option key={r} value={r}>
+                {ACTORS[r].name} · {ACTORS[r].role}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-[11.5px] leading-snug text-ink-400">Demo roles for evaluation. There is no login, so this is not access control.</p>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
-};
+}

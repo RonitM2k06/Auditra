@@ -107,6 +107,7 @@ class FindingResponse(BaseModel):
 
 class FindingApplyRequest(BaseModel):
     custom_replacement: Optional[str] = None
+    occurrence_offset: Optional[int] = Field(None, ge=0, description="Character offset of the occurrence to replace when the text appears more than once")
     actor_name: str = "Creator"
     actor_role: str = "Content Creator"
 

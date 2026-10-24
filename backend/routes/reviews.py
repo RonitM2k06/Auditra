@@ -243,15 +243,29 @@ def apply_finding_correction(
         # Append the required disclosure
         updated_body = body.rstrip() + ("\n\n" if not replacement.startswith("\n") else "") + replacement.strip()
     else:
-        # Check if matched_text is in the body
-        if finding.matched_text in body:
-            # Replace first occurrence of the matched text safely
-            updated_body = body.replace(finding.matched_text, replacement, 1)
+        target = finding.matched_text
+        offset = payload.occurrence_offset
+        if offset is not None:
+            # Caller identified the exact occurrence; verify it still matches.
+            if offset < 0 or body[offset:offset + len(target)] != target:
+                raise HTTPException(
+                    status_code=409,
+                    detail="The selected text no longer matches the current version. Re-run the review and try again."
+                )
+            updated_body = body[:offset] + replacement + body[offset + len(target):]
         else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Matched text '{finding.matched_text}' was not found in the current content revision. It may have already been edited."
-            )
+            occurrences = body.count(target)
+            if occurrences == 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"'{target}' was not found in the current version. It may have already been edited."
+                )
+            if occurrences > 1:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"'{target}' appears {occurrences} times in the current version. Choose which occurrence to replace."
+                )
+            updated_body = body.replace(target, replacement, 1)
 
     # Create new content version
     new_version_num = content_item.current_version_number + 1

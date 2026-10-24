@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.database import get_db
-from backend.models import Brand, BrandRule, ContentItem, ContentVersion, ReviewRun, Finding, ReviewDecision
+from backend.models import Brand, BrandRule, ContentItem, ContentVersion, ReviewRun, Finding, ReviewDecision, AuditEvent
 from backend.schemas import GovernanceInsightsResponse
 
 router = APIRouter(prefix="/brands/{brand_id}", tags=["Governance Insights"])
@@ -89,11 +89,29 @@ def get_governance_insights(brand_id: str, db: Session = Depends(get_db)):
     total_decisions = len(decisions)
     approval_rate = round((approved_count / total_decisions) * 100, 1) if total_decisions > 0 else 0.0
 
+    # Turnaround = time from the most recent submission to each decision, measured from audit events.
+    turnaround_hours = []
+    for d in decisions:
+        submitted = (
+            db.query(AuditEvent)
+            .filter(
+                AuditEvent.content_id == d.content_id,
+                AuditEvent.event_type == "submitted_for_review",
+                AuditEvent.created_at <= d.created_at,
+            )
+            .order_by(AuditEvent.created_at.desc())
+            .first()
+        )
+        if submitted:
+            turnaround_hours.append((d.created_at - submitted.created_at).total_seconds() / 3600)
+    avg_turnaround = round(sum(turnaround_hours) / len(turnaround_hours), 1) if turnaround_hours else None
+
     approval_turnaround_summary = {
         "total_governance_decisions": total_decisions,
         "first_pass_approval_rate": f"{approval_rate}%",
         "changes_requested_count": changes_req_count,
-        "average_turnaround_hours": 3.4 if total_decisions > 0 else 0.0
+        "average_turnaround_hours": avg_turnaround,
+        "turnaround_sample_size": len(turnaround_hours)
     }
 
     # 5. Rule clarity insights & recommendations
