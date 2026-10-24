@@ -7,7 +7,7 @@ AUDITRA checks marketing copy against a brand's approved rules **before it ships
 It is deliberately not a free-form writing assistant: automated checks inform the decision, and a named human reviewer makes it.
 
 **Live demo:** _not yet deployed — insert the verified URL here_  
-**Repository:** _not yet published — insert the verified URL here_
+**Repository:** https://github.com/RonitM2k06/Auditra
 
 ![Review studio with an expanded finding](docs/screenshots/03-finding-expanded.png)
 

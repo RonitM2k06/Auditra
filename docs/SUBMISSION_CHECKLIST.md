@@ -5,7 +5,7 @@ Status as of 24 Oct 2026. **Verified** = checked against the running app or file
 | Item | Status | Evidence / next step |
 |---|---|---|
 | Working project link | **Blocked** | Not deployed. See *Publishing* below; a hosting account is required. Test the public URL before submitting it. |
-| Source-code repository link | **Blocked** | No git remote exists. Commit, then create a GitHub repository and push (commands below). |
+| Source-code repository link | **Verified** | https://github.com/RonitM2k06/Auditra (public; `main` matches the local commit; PDF on GitHub is byte-identical). |
 | Updated project PDF | **Verified** | `AUDITRA_Round2_Submission.pdf`: 11 A4 pages, 7 screenshots, page numbers; rendered and checked page by page. Rebuild with `python generate_submission_pdf.py` after adding the links. |
 | Completed features | **Verified** | README *What is implemented*; PDF pages 2–3. Backed by 11 passing tests, an ad-hoc 21/21 HTTP smoke test and a manual browser run. |
 | Technology and implementation details | **Verified** | README *Architecture* and *Run it locally*; PDF pages 8 and 11. |

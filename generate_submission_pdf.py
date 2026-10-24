@@ -20,7 +20,7 @@ OUT = os.path.join(ROOT, "AUDITRA_Round2_Submission.pdf")
 
 # >>> INSERT VERIFIED URLS HERE before regenerating. Leave empty until each link has been opened and works. <<<
 LIVE_URL = ""   # e.g. the deployed app root that serves the Overview page
-REPO_URL = ""   # e.g. the GitHub repository page
+REPO_URL = "https://github.com/RonitM2k06/Auditra"   # verified 24 Oct 2026
 
 NAVY = colors.HexColor("#111C2E")
 TEAL = colors.HexColor("#0F9488")
