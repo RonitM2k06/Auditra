@@ -62,7 +62,7 @@ export function Overview({ brand, navigate }: { brand: Brand; navigate: (page: s
               {st.label}
               <st.icon className={cx('h-4 w-4 shrink-0', st.tone)} aria-hidden />
             </p>
-            <p className="mt-2 font-serif font-semibold text-[30px] leading-none tabular-nums text-ink-900">{st.value}</p>
+            <p className="mt-2 font-semibold text-[28px] tracking-tight leading-none tabular-nums text-ink-900">{st.value}</p>
           </button>
         ))}
       </div>

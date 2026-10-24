@@ -67,7 +67,7 @@ frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "f
 if os.path.exists(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
 
-    @app.get("/{full_path:path}")
+    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
     def serve_frontend_spa(full_path: str):
         # Allow /api to pass through
         if full_path.startswith("api"):

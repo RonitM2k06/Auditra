@@ -650,7 +650,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                               {v.created_by} · {formatDateTime(v.created_at)}
                             </p>
                             {v.change_summary && <p className="mt-1 text-[12.5px] text-ink-700">{v.change_summary}</p>}
-                            <p className="mt-1 line-clamp-2 font-serif text-[13px] text-ink-500">{v.body}</p>
+                            <p className="mt-1.5 line-clamp-2 rounded border border-line/70 bg-ink-50/70 p-2 font-mono text-[12px] text-ink-600">{v.body}</p>
                           </li>
                         );
                       })}
@@ -734,7 +734,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                 <button
                   onClick={() => apply(chooser.finding, chooser.custom, p)}
                   disabled={!!busy}
-                  className="w-full rounded-md border border-line px-3 py-2 text-left font-serif text-[14px] text-ink-700 hover:border-ink-400 hover:bg-ink-50"
+                  className="w-full rounded-md border border-line px-3 py-2 text-left font-mono text-[12.5px] text-ink-700 hover:border-ink-400 hover:bg-ink-50"
                 >
                   …{body.slice(Math.max(0, p - 40), p)}
                   <mark className="rounded-sm bg-amber-100 px-0.5 text-ink-900">{body.slice(p, p + len)}</mark>

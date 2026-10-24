@@ -28,10 +28,10 @@ export const STATUS_META: Record<string, { label: string; dot: string; text: str
 };
 
 export const SEV_META: Record<string, { label: string; text: string; bg: string; bar: string; mark: string; edge: string }> = {
-  critical: { label: 'Critical', text: 'text-red-800', bg: 'bg-red-50', bar: 'bg-red-700', mark: 'bg-red-100/70 decoration-red-600', edge: 'border-l-red-700' },
-  high: { label: 'High', text: 'text-orange-700', bg: 'bg-orange-50', bar: 'bg-orange-500', mark: 'bg-orange-100/70 decoration-orange-500', edge: 'border-l-orange-500' },
-  medium: { label: 'Medium', text: 'text-amber-800', bg: 'bg-amber-50', bar: 'bg-amber-500', mark: 'bg-amber-100/70 decoration-amber-500', edge: 'border-l-amber-400' },
-  low: { label: 'Low', text: 'text-sky-800', bg: 'bg-sky-50', bar: 'bg-sky-600', mark: 'bg-sky-100/70 decoration-sky-500', edge: 'border-l-sky-500' },
+  critical: { label: 'Critical', text: 'text-red-700', bg: 'bg-red-50/80 border border-red-200', bar: 'bg-red-600', mark: 'bg-red-100/80 decoration-red-600 text-red-950 font-medium', edge: 'border-l-red-600' },
+  high: { label: 'High', text: 'text-amber-700', bg: 'bg-amber-50/80 border border-amber-200', bar: 'bg-amber-500', mark: 'bg-amber-100/80 decoration-amber-500 text-amber-950 font-medium', edge: 'border-l-amber-500' },
+  medium: { label: 'Medium', text: 'text-orange-700', bg: 'bg-orange-50/80 border border-orange-200', bar: 'bg-orange-400', mark: 'bg-orange-100/80 decoration-orange-400 text-orange-950 font-medium', edge: 'border-l-orange-400' },
+  low: { label: 'Low', text: 'text-sky-700', bg: 'bg-sky-50/80 border border-sky-200', bar: 'bg-sky-500', mark: 'bg-sky-100/80 decoration-sky-400 text-sky-950 font-medium', edge: 'border-l-sky-400' },
 };
 
 export const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
@@ -147,7 +147,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="font-serif font-semibold text-[28px] leading-tight tracking-tight text-ink-900">{title}</h1>
+        <h1 className="text-[24px] font-semibold tracking-tight text-ink-900">{title}</h1>
         {description && <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-ink-500">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">{actions}</div>}

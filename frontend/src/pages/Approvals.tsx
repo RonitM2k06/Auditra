@@ -256,7 +256,7 @@ export function Approvals({ brand, role, navigate, onChanged }: ApprovalsProps) 
                                 <SeverityTag severity={f.severity} />
                                 <span className="text-ink-700">{CATEGORY_LABEL[f.category] ?? f.category}</span>
                               </div>
-                              {f.start_offset !== f.end_offset && <p className="mt-0.5 font-serif font-semibold text-ink-900">“{f.matched_text}”</p>}
+                              {f.start_offset !== f.end_offset && <p className="mt-1 font-mono text-[12px] font-medium text-ink-800 bg-ink-100/80 px-1.5 py-0.5 rounded inline-block">“{f.matched_text}”</p>}
                             </li>
                           ))}
                         </ul>
