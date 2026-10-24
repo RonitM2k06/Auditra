@@ -138,7 +138,7 @@ The repo is ready to import into Vercel as-is (`vercel.json` + `api/index.py`):
 2. Optionally add `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` under Environment Variables.
 3. Deploy. The SPA is served statically from `frontend/dist`; every `/api/*` call goes to the FastAPI app as a Python serverless function.
 
-**Data caveat:** Vercel functions have no persistent disk, so SQLite lives in `/tmp` and is re-seeded with the Northstar demo on each cold start; edits may vanish between requests that hit different instances. For persistent data, set `DATABASE_URL` to a hosted Postgres (e.g. Vercel Postgres / Neon) and add a driver such as `psycopg[binary]` to `requirements.txt`.
+**Database:** the live demo uses a free Neon Postgres database connected through Vercel Storage, which sets `DATABASE_URL`. All function instances share it, so data persists. Without `DATABASE_URL`, Vercel falls back to a per-instance SQLite file in `/tmp` that resets on cold starts and is not shared between instances (fine for a quick preview only). Use **Settings → Reset demo workspace** to restore the Northstar demo.
 
 The `Dockerfile` still works for container hosts.
 

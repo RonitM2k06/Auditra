@@ -98,8 +98,8 @@ def links_callout():
     if LIVE_URL and REPO_URL:
         return callout(f"<b>Live application:</b> <link href='{LIVE_URL}' color='#0F9488'>{LIVE_URL}</link><br/>"
                        f"<b>Source repository:</b> <link href='{REPO_URL}' color='#0F9488'>{REPO_URL}</link><br/>"
-                       "The live instance runs on Vercel serverless functions without a persistent disk: it holds only the fictional Northstar demo data, "
-                       "resets to that data whenever a new instance starts, and has no login.")
+                       "The live instance runs on Vercel serverless functions backed by a shared Neon Postgres database: it holds only the fictional Northstar demo data, "
+                       "can be restored to it from Settings, and has no login.")
     live = (f"<link href='{LIVE_URL}' color='#0F9488'>{LIVE_URL}</link>" if LIVE_URL
             else "not yet deployed; no public URL has been verified.")
     repo = (f"<link href='{REPO_URL}' color='#0F9488'>{REPO_URL}</link>" if REPO_URL
