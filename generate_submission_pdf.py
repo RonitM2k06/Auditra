@@ -19,7 +19,7 @@ SHOTS = os.path.join(ROOT, "docs", "screenshots")
 OUT = os.path.join(ROOT, "AUDITRA_Round2_Submission.pdf")
 
 # >>> INSERT VERIFIED URLS HERE before regenerating. Leave empty until each link has been opened and works. <<<
-LIVE_URL = "https://auditra-iqmf.onrender.com/"   # verified 24 Oct 2026 (Render, free plan)
+LIVE_URL = "https://auditra-bice.vercel.app/"   # verified 24 Oct 2026 (Vercel)
 REPO_URL = "https://github.com/RonitM2k06/Auditra"   # verified 24 Oct 2026
 
 NAVY = colors.HexColor("#111C2E")
@@ -98,8 +98,8 @@ def links_callout():
     if LIVE_URL and REPO_URL:
         return callout(f"<b>Live application:</b> <link href='{LIVE_URL}' color='#0F9488'>{LIVE_URL}</link><br/>"
                        f"<b>Source repository:</b> <link href='{REPO_URL}' color='#0F9488'>{REPO_URL}</link><br/>"
-                       "The live instance runs on a free Render plan without a persistent disk: it holds only the fictional Northstar demo data, "
-                       "resets to that data when it restarts, has no login, and may take about a minute to wake after being idle.")
+                       "The live instance runs on Vercel serverless functions without a persistent disk: it holds only the fictional Northstar demo data, "
+                       "resets to that data whenever a new instance starts, and has no login.")
     live = (f"<link href='{LIVE_URL}' color='#0F9488'>{LIVE_URL}</link>" if LIVE_URL
             else "not yet deployed; no public URL has been verified.")
     repo = (f"<link href='{REPO_URL}' color='#0F9488'>{REPO_URL}</link>" if REPO_URL
@@ -275,7 +275,7 @@ def build():
         ["Persistence across a server restart", "Brand, approved status and audit trail all present after restart"],
         ["AI provider failure", "Review completes with rule findings and ai_status: failed"],
         ["Browser check (Chrome via Playwright)", "All screens at 1440×900, 1024×768, 768×1024 and 375×812: no console errors, no failed API calls, no horizontal overflow; full creator-to-reviewer journey completed in the UI"],
-        ["Public deployment (Render)", "Health endpoint healthy; Overview, Rulebook, Approvals, Audit and Insights load; a review on the sample copy returned 7 findings; no console errors or failed requests"],
+        ["Public deployment (Vercel)", "Health endpoint healthy; Overview, Rulebook, Approvals, Audit and Insights load; SPA routes and assets load; a live review run completed"],
         ["Successful live AI call", "<b>Not tested</b>: no provider key was available"],
     ], [70 * mm, CONTENT_W - 70 * mm]))
     story += [
