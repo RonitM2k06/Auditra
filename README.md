@@ -6,7 +6,7 @@ AUDITRA checks marketing copy against a brand's approved rules **before it ships
 
 It is deliberately not a free-form writing assistant: automated checks inform the decision, and a named human reviewer makes it.
 
-**Live demo:** _not yet deployed — insert the verified URL here_  
+**Live demo:** https://auditra-iqmf.onrender.com/ (fictional demo data only; no login; may take ~1 min to wake)  
 **Repository:** https://github.com/RonitM2k06/Auditra
 
 ![Review studio with an expanded finding](docs/screenshots/03-finding-expanded.png)
@@ -130,7 +130,7 @@ AUDITRA runs as a single Python web process that serves both the API and the bui
 3. Set provider keys as platform secrets if you want the AI step.
 4. SQLite needs a **persistent disk** mounted where `DATABASE_URL` points (e.g. `sqlite:////data/auditra.db`); on ephemeral filesystems data resets on redeploy.
 
-**Status:** no deployment is configured in this repository and no public URL has been verified yet. Once verified, put the URLs in the *Live demo* / *Repository* lines at the top of this README and in `LIVE_URL` / `REPO_URL` at the top of `generate_submission_pdf.py`, then run `python generate_submission_pdf.py`.
+**Status:** deployed as a temporary judge demo at https://auditra-iqmf.onrender.com/ from `Dockerfile` + `render.yaml` (Render free plan, no persistent disk: the instance resets to the seeded demo data on restart). Verified 24 Oct 2026: health endpoint, all main screens, and a live review run.
 
 ---
 
