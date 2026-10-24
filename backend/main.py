@@ -18,6 +18,9 @@ if os.getenv("VERCEL"):
     _db = next(get_db())
     try:
         seed_sample_workspace(_db, force_reset=False)
+    except Exception:
+        # Another instance seeded the shared database at the same moment (unique slug).
+        _db.rollback()
     finally:
         _db.close()
 

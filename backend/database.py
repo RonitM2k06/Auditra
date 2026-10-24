@@ -3,13 +3,18 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from backend.config import settings
 
 connect_args = {}
+engine_kwargs = {}
 if settings.DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+else:
+    # Hosted Postgres (e.g. Neon): drop stale serverless connections before use.
+    engine_kwargs = {"pool_pre_ping": True, "pool_size": 2, "max_overflow": 3}
 
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args=connect_args,
-    echo=False
+    echo=False,
+    **engine_kwargs
 )
 
 if settings.DATABASE_URL.startswith("sqlite"):

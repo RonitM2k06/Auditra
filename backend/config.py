@@ -17,3 +17,9 @@ class Settings(BaseModel):
     CORS_ORIGINS: list[str] = ["*"]
 
 settings = Settings()
+
+# Providers hand out postgres:// URLs; SQLAlchemy needs the psycopg (v3) dialect name.
+for _prefix in ("postgres://", "postgresql://"):
+    if settings.DATABASE_URL.startswith(_prefix):
+        settings.DATABASE_URL = "postgresql+psycopg://" + settings.DATABASE_URL[len(_prefix):]
+        break

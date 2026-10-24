@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
+from backend import models
 from backend.models import (
     Brand, BrandRule, ApprovedClaim, ContentItem, ContentVersion,
     ReviewRun, Finding, ReviewDecision, Comment, AuditEvent
@@ -8,6 +9,13 @@ from backend.models import (
 from backend.rule_engine import ComplianceRuleEngine
 
 def seed_sample_workspace(db: Session, force_reset: bool = False) -> Brand:
+    models._seed_counter = 0
+    try:
+        return _seed_sample_workspace(db, force_reset)
+    finally:
+        models._seed_counter = None
+
+def _seed_sample_workspace(db: Session, force_reset: bool = False) -> Brand:
     # Check if Northstar sample brand already exists
     existing = db.query(Brand).filter(Brand.slug == "northstar").first()
     if existing:

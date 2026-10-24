@@ -6,7 +6,16 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from backend.database import Base
 
+# While seeding, IDs come from this counter so every server instance (e.g. separate
+# Vercel functions, each with its own SQLite file) gives the demo rows identical IDs.
+_seed_counter = None
+_SEED_NAMESPACE = uuid.UUID("6f1c2a1e-6c0b-4b5e-9a57-8f7a1d3c0e42")
+
 def generate_uuid():
+    global _seed_counter
+    if _seed_counter is not None:
+        _seed_counter += 1
+        return str(uuid.uuid5(_SEED_NAMESPACE, str(_seed_counter)))
     return str(uuid.uuid4())
 
 def get_utc_now():
