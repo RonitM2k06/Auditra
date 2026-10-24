@@ -13,6 +13,14 @@ from backend.routes import brands, rules, content, reviews, workflow, audit, das
 # Ensure tables exist immediately
 Base.metadata.create_all(bind=engine)
 
+# Serverless runtimes (Vercel) may not run the lifespan hook, so seed at import there too.
+if os.getenv("VERCEL"):
+    _db = next(get_db())
+    try:
+        seed_sample_workspace(_db, force_reset=False)
+    finally:
+        _db.close()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Ensure tables and sample workspace exists on first run

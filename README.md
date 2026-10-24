@@ -6,7 +6,7 @@ AUDITRA checks marketing copy against a brand's approved rules **before it ships
 
 It is deliberately not a free-form writing assistant: automated checks inform the decision, and a named human reviewer makes it.
 
-**Live demo:** https://auditra-iqmf.onrender.com/ (fictional demo data only; no login; may take ~1 min to wake)  
+**Live demo:** _redeploying on Vercel — link to be added_ (fictional demo data only; no login)  
 **Repository:** https://github.com/RonitM2k06/Auditra
 
 ![Review studio with an expanded finding](docs/screenshots/03-finding-expanded.png)
@@ -130,7 +130,17 @@ AUDITRA runs as a single Python web process that serves both the API and the bui
 3. Set provider keys as platform secrets if you want the AI step.
 4. SQLite needs a **persistent disk** mounted where `DATABASE_URL` points (e.g. `sqlite:////data/auditra.db`); on ephemeral filesystems data resets on redeploy.
 
-**Status:** deployed as a temporary judge demo at https://auditra-iqmf.onrender.com/ from `Dockerfile` + `render.yaml` (Render free plan, no persistent disk: the instance resets to the seeded demo data on restart). Verified 24 Oct 2026: health endpoint, all main screens, and a live review run.
+### Vercel (current)
+
+The repo is ready to import into Vercel as-is (`vercel.json` + `api/index.py`):
+
+1. vercel.com → **Add New → Project** → import `RonitM2k06/Auditra`. Leave Framework Preset as **Other** and Root Directory as `./`; `vercel.json` supplies the build settings.
+2. Optionally add `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` under Environment Variables.
+3. Deploy. The SPA is served statically from `frontend/dist`; every `/api/*` call goes to the FastAPI app as a Python serverless function.
+
+**Data caveat:** Vercel functions have no persistent disk, so SQLite lives in `/tmp` and is re-seeded with the Northstar demo on each cold start; edits may vanish between requests that hit different instances. For persistent data, set `DATABASE_URL` to a hosted Postgres (e.g. Vercel Postgres / Neon) and add a driver such as `psycopg[binary]` to `requirements.txt`.
+
+The `Dockerfile` still works for container hosts.
 
 ---
 

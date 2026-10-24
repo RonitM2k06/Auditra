@@ -1,11 +1,16 @@
 import os
+import tempfile
 from pydantic import BaseModel
 
 class Settings(BaseModel):
     PROJECT_NAME: str = "AUDITRA"
     VERSION: str = "2.0.0"
     API_V1_STR: str = "/api"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./auditra.db")
+    # Vercel's filesystem is read-only except /tmp, so the demo SQLite file lives in the temp dir.
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        f"sqlite:///{os.path.join(tempfile.gettempdir(), 'auditra.db')}" if os.getenv("VERCEL") else "sqlite:///./auditra.db",
+    )
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
