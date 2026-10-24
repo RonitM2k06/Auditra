@@ -1,0 +1,5 @@
+# Never rewrite line endings inside binary files
+*.pdf binary
+*.png binary
+*.jpg binary
+*.svg text eol=lf
