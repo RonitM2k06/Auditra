@@ -19,10 +19,11 @@ import { Campaigns } from './pages/Campaigns';
 import { Replay } from './pages/Replay';
 import { NewCreative } from './pages/NewCreative';
 import { Copilot } from './components/Copilot';
+import { Coverage } from './pages/Coverage';
 import type { Brand, Me } from './types';
 import { api, type HealthStatus } from './api';
 
-const PAGES = ['overview', 'reviews', 'studio', 'creative', 'rulebook', 'sources', 'dna', 'campaigns', 'approvals', 'audit', 'insights', 'governance', 'settings', 'replay'];
+const PAGES = ['overview', 'reviews', 'studio', 'creative', 'rulebook', 'sources', 'dna', 'campaigns', 'approvals', 'audit', 'insights', 'governance', 'settings', 'replay', 'coverage'];
 type Route = { page: string; id: string | null; tab?: string | null };
 
 /** Hash routes (#/studio/<id>) so every screen survives a refresh and can be linked. */
@@ -221,6 +222,8 @@ function Shell() {
         return <Campaigns brand={brand} canManage={role !== 'reviewer'} campaignId={route.id} navigate={navigate} />;
       case 'replay':
         return <Replay contentId={route.id} role={role} navigate={navigate} />;
+      case 'coverage':
+        return <Coverage brand={brand} navigate={navigate} />;
       case 'approvals':
         return <Approvals brand={brand} role={role} navigate={navigate} onChanged={refreshQueue} />;
       case 'audit':

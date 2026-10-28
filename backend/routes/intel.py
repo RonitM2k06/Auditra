@@ -15,6 +15,7 @@ from backend.models_r3 import ApprovalPolicy, BrandLogo, Campaign, CampaignAsset
 from backend.review_pipeline import brand_palette
 from backend.risk import campaign_risk as compute_campaign_risk
 from backend import copilot
+from backend.coverage import coverage_map
 
 router = APIRouter(tags=["Brand intelligence"])
 
@@ -305,3 +306,10 @@ def ask_copilot(brand_id: str, payload: CopilotIn, user: User = Depends(current_
                       event_metadata=json.dumps({"mode": result.get("mode"), "tools": [t["tool"] for t in result["trace"]]})))
     db.commit()
     return result
+
+
+@router.get("/brands/{brand_id}/coverage")
+def governance_coverage(brand_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Governance Coverage Map: policies x checks x sources x assets, computed from stored records."""
+    authorize(db, user, brand_id, "workspace.view")
+    return coverage_map(db, brand_id)

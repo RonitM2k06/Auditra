@@ -7,6 +7,7 @@ import {
 import type { RiskReport } from './components/RiskRadar';
 import type { CopilotAnswer } from './components/Copilot';
 import type { Proposal } from './components/Proposals';
+import type { CoverageData } from './pages/Coverage';
 import type { RemediationPreview, Suggestion } from './components/RemediationPanel';
 
 const API_BASE = '/api';
@@ -220,6 +221,7 @@ export const api = {
   rerunProposal: (id: string) => request<Proposal>(`/rule-proposals/${id}/rerun`, { method: 'POST' }),
   decideProposal: (id: string, decision: 'activate' | 'reject', confirm: boolean, note: string) =>
     request<Proposal>(`/rule-proposals/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision, confirm, note }) }),
+  getCoverage: (brandId: string) => request<CoverageData>(`/brands/${brandId}/coverage`),
   askCopilot: (brandId: string, question: string, history: Array<{ role: string; content: string }>) =>
     request<CopilotAnswer>(`/brands/${brandId}/copilot`, { method: 'POST', body: JSON.stringify({ question, history }) }),
   getRemediation: (contentId: string) =>

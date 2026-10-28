@@ -18,6 +18,7 @@ const PAGE_LABEL: Record<string, string> = {
   campaigns: 'Campaign consistency',
   governance: 'Policies & members',
   replay: 'Decision replay',
+  coverage: 'Coverage map',
 };
 
 export function Topbar({ brand, page, onMenu, health }: { brand: Brand | null; page: string; onMenu: () => void; health: HealthStatus | null }) {

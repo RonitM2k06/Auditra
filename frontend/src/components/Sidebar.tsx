@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BarChart2, BookOpen, Check, ChevronsUpDown, Dna, FilePlus2, FileSearch, FileText, History, ImageUp, Inbox, LayoutGrid, LogOut, Network, Plus, Settings, ShieldCheck, X } from 'lucide-react';
+import { BarChart2, BookOpen, Check, ChevronsUpDown, Dna, FilePlus2, FileSearch, FileText, History, ImageUp, Inbox, LayoutGrid, LogOut, Network, Plus, Settings, ShieldCheck, Grid3x3, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cx, Logo, ROLE_LABEL, type Role } from './ui';
 import type { Brand, Me } from '../types';
@@ -24,6 +24,7 @@ const NAV: Array<{ group: string; items: NavEntry[] }> = [
       { id: 'rulebook', label: 'Brand rulebook', icon: BookOpen },
       { id: 'sources', label: 'Evidence library', icon: FileSearch },
       { id: 'dna', label: 'Brand DNA', icon: Dna },
+      { id: 'coverage', label: 'Coverage map', icon: Grid3x3 },
       { id: 'audit', label: 'Audit trail', icon: History },
     ],
   },
