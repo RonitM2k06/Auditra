@@ -3,6 +3,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy.orm import Session
 from backend.database import get_db
+from backend.auth import authorize, current_user
+from backend.models_r3 import User
 from backend.models import Brand, BrandRule, ApprovedClaim, AuditEvent
 from backend.schemas import (
     BrandRuleCreate, BrandRuleUpdate, BrandRuleResponse,
@@ -18,8 +20,10 @@ def get_rules(
     severity: Optional[str] = None,
     is_active: Optional[bool] = None,
     search: Optional[str] = None,
+    user: User = Depends(current_user),
     db: Session = Depends(get_db)
 ):
+    actor = authorize(db, user, brand_id, "workspace.view")
     query = db.query(BrandRule).filter(BrandRule.brand_id == brand_id)
     if category:
         query = query.filter(BrandRule.category == category)
@@ -38,7 +42,9 @@ def get_rules(
     return query.order_by(BrandRule.created_at.desc()).all()
 
 @router.post("/rules", response_model=BrandRuleResponse, status_code=status.HTTP_201_CREATED)
-def create_rule(brand_id: str, payload: BrandRuleCreate, db: Session = Depends(get_db)):
+def create_rule(brand_id: str, payload: BrandRuleCreate, user: User = Depends(current_user),
+    db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "rules.manage")
     brand = db.query(Brand).filter(Brand.id == brand_id).first()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
@@ -61,8 +67,8 @@ def create_rule(brand_id: str, payload: BrandRuleCreate, db: Session = Depends(g
     db.add(AuditEvent(
         brand_id=brand_id,
         event_type="rule_created",
-        actor_name="Brand Manager",
-        actor_role="Brand Governance Lead",
+        actor_name=actor.name,
+        actor_role=actor.role_label,
         description=f"Added brand rule: '{rule.name}' ({rule.category})."
     ))
     db.commit()
@@ -70,7 +76,9 @@ def create_rule(brand_id: str, payload: BrandRuleCreate, db: Session = Depends(g
     return rule
 
 @router.put("/rules/{rule_id}", response_model=BrandRuleResponse)
-def update_rule(brand_id: str, rule_id: str, payload: BrandRuleUpdate, db: Session = Depends(get_db)):
+def update_rule(brand_id: str, rule_id: str, payload: BrandRuleUpdate, user: User = Depends(current_user),
+    db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "rules.manage")
     rule = db.query(BrandRule).filter(BrandRule.id == rule_id, BrandRule.brand_id == brand_id).first()
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
@@ -82,8 +90,8 @@ def update_rule(brand_id: str, rule_id: str, payload: BrandRuleUpdate, db: Sessi
     db.add(AuditEvent(
         brand_id=brand_id,
         event_type="rule_updated",
-        actor_name="Brand Manager",
-        actor_role="Brand Governance Lead",
+        actor_name=actor.name,
+        actor_role=actor.role_label,
         description=f"Updated rule: '{rule.name}'."
     ))
     db.commit()
@@ -91,7 +99,9 @@ def update_rule(brand_id: str, rule_id: str, payload: BrandRuleUpdate, db: Sessi
     return rule
 
 @router.delete("/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_rule(brand_id: str, rule_id: str, db: Session = Depends(get_db)):
+def delete_rule(brand_id: str, rule_id: str, user: User = Depends(current_user),
+    db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "rules.manage")
     rule = db.query(BrandRule).filter(BrandRule.id == rule_id, BrandRule.brand_id == brand_id).first()
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
@@ -101,8 +111,8 @@ def delete_rule(brand_id: str, rule_id: str, db: Session = Depends(get_db)):
     db.add(AuditEvent(
         brand_id=brand_id,
         event_type="rule_deleted",
-        actor_name="Brand Manager",
-        actor_role="Brand Governance Lead",
+        actor_name=actor.name,
+        actor_role=actor.role_label,
         description=f"Deleted rule: '{rule_name}'."
     ))
     db.commit()
@@ -112,8 +122,10 @@ def delete_rule(brand_id: str, rule_id: str, db: Session = Depends(get_db)):
 async def upload_guidelines(
     brand_id: str,
     file: UploadFile = File(...),
+    user: User = Depends(current_user),
     db: Session = Depends(get_db)
 ):
+    actor = authorize(db, user, brand_id, "rules.manage")
     """
     Ingests text or markdown guideline document and automatically generates structured rules.
     """
@@ -187,8 +199,8 @@ async def upload_guidelines(
     db.add(AuditEvent(
         brand_id=brand_id,
         event_type="guideline_uploaded",
-        actor_name="Brand Manager",
-        actor_role="Brand Governance Lead",
+        actor_name=actor.name,
+        actor_role=actor.role_label,
         description=f"Uploaded and parsed guideline file '{filename}', extracting {len(created_rules)} rules."
     ))
     db.commit()
@@ -201,11 +213,15 @@ async def upload_guidelines(
 
 # --- Claims ---
 @router.get("/claims", response_model=List[ApprovedClaimResponse])
-def get_approved_claims(brand_id: str, db: Session = Depends(get_db)):
+def get_approved_claims(brand_id: str, user: User = Depends(current_user),
+    db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "workspace.view")
     return db.query(ApprovedClaim).filter(ApprovedClaim.brand_id == brand_id).order_by(ApprovedClaim.created_at.desc()).all()
 
 @router.post("/claims", response_model=ApprovedClaimResponse, status_code=status.HTTP_201_CREATED)
-def create_approved_claim(brand_id: str, payload: ApprovedClaimCreate, db: Session = Depends(get_db)):
+def create_approved_claim(brand_id: str, payload: ApprovedClaimCreate, user: User = Depends(current_user),
+    db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "rules.manage")
     brand = db.query(Brand).filter(Brand.id == brand_id).first()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
@@ -224,8 +240,8 @@ def create_approved_claim(brand_id: str, payload: ApprovedClaimCreate, db: Sessi
     db.add(AuditEvent(
         brand_id=brand_id,
         event_type="claim_created",
-        actor_name="Legal & Compliance",
-        actor_role="Compliance Officer",
+        actor_name=actor.name,
+        actor_role=actor.role_label,
         description=f"Registered verified claim: '{claim.claim_statement[:60]}...' backed by {claim.evidence_source}."
     ))
     db.commit()
@@ -233,10 +249,20 @@ def create_approved_claim(brand_id: str, payload: ApprovedClaimCreate, db: Sessi
     return claim
 
 @router.delete("/claims/{claim_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_approved_claim(brand_id: str, claim_id: str, db: Session = Depends(get_db)):
+def delete_approved_claim(brand_id: str, claim_id: str, user: User = Depends(current_user),
+    db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "rules.manage")
     claim = db.query(ApprovedClaim).filter(ApprovedClaim.id == claim_id, ApprovedClaim.brand_id == brand_id).first()
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found")
+    statement = claim.claim_statement
     db.delete(claim)
+    db.add(AuditEvent(
+        brand_id=brand_id,
+        event_type="claim_deleted",
+        actor_name=actor.name,
+        actor_role=actor.role_label,
+        description=f"Removed approved claim: '{statement[:60]}'."
+    ))
     db.commit()
     return None

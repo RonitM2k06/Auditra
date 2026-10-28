@@ -48,7 +48,8 @@ class DeterministicFinding:
         }
 
 class ComplianceRuleEngine:
-    def __init__(self, rules: List[BrandRule], approved_claims: List[ApprovedClaim]):
+    def __init__(self, rules: List[BrandRule], approved_claims: List[ApprovedClaim], allowed_caps: Optional[set] = None):
+        self.allowed_caps = {w.upper() for w in (allowed_caps or set())}
         self.rules = [r for r in rules if r.is_active]
         self.approved_claims = [c for c in approved_claims if c.is_active]
 
@@ -249,7 +250,7 @@ class ComplianceRuleEngine:
         whitelist = {"AUDITRA", "SAAS", "API", "REST", "JSON", "HTTP", "HTTPS", "HTML", "CSS", "UI", "UX", "CEO", "CTO", "CIO", "AI", "ML", "LLM"}
         for match in re.finditer(r"\b[A-Z]{4,}\b", text):
             word = match.group(0)
-            if word not in whitelist:
+            if word not in whitelist and word not in self.allowed_caps:
                 results.append(
                     DeterministicFinding(
                         rule_id=None,

@@ -3,13 +3,17 @@ from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
+from backend.auth import authorize, current_user
+from backend.models_r3 import User
 from backend.models import Brand, ContentItem, ContentVersion, ReviewRun, Finding, AuditEvent
 from backend.schemas import DashboardStatsResponse, ContentItemResponse, AuditEventResponse
 
 router = APIRouter(prefix="/brands/{brand_id}", tags=["Dashboard"])
 
 @router.get("/dashboard", response_model=DashboardStatsResponse)
-def get_dashboard_metrics(brand_id: str, db: Session = Depends(get_db)):
+def get_dashboard_metrics(brand_id: str, user: User = Depends(current_user),
+    db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "workspace.view")
     brand = db.query(Brand).filter(Brand.id == brand_id).first()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")

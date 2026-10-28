@@ -3,6 +3,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from backend.database import get_db
+from backend.auth import authorize, current_user
+from backend.models_r3 import User
 from backend.models import AuditEvent
 from backend.schemas import AuditEventResponse
 
@@ -14,8 +16,10 @@ def get_audit_trail(
     content_id: Optional[str] = None,
     event_type: Optional[str] = None,
     limit: int = Query(100, ge=1, le=500),
+    user: User = Depends(current_user),
     db: Session = Depends(get_db)
 ):
+    actor = authorize(db, user, brand_id, "workspace.view")
     query = db.query(AuditEvent).filter(AuditEvent.brand_id == brand_id)
     if content_id:
         query = query.filter(AuditEvent.content_id == content_id)

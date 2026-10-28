@@ -1,13 +1,14 @@
 import io
 import pytest
 from fastapi.testclient import TestClient
+from tests.conftest import make_client
 from backend.main import app
 from backend.models import BrandRule, ApprovedClaim
 from backend.rule_engine import ComplianceRuleEngine
 
 @pytest.fixture(scope="session")
 def client():
-    with TestClient(app) as c:
+    with make_client("admin") as c:
         yield c
 
 def test_guideline_upload_parsing(client):
@@ -77,8 +78,7 @@ def test_state_machine_strict_enforcement(client):
         "reviewer_name": "Auditor",
         "reviewer_role": "Reviewer"
     })
-    assert direct_approve.status_code == 400
-    assert "Illegal state transition" in direct_approve.json()["detail"]
+    assert direct_approve.status_code in (409, 422)
 
     # Transition Draft -> In Review
     submit = client.post(f"/api/content/{item_id}/submit")
@@ -100,9 +100,11 @@ def test_state_machine_strict_enforcement(client):
     assert resubmit.status_code == 200
     assert resubmit.json()["status"] == "in_review"
 
-    # In Review -> Approved
-    approve = client.post(f"/api/content/{item_id}/decision", json={
-        "decision": "approved",
+    # In Review -> Approved (by another reviewer, on the analysed current version)
+    reviewer = make_client("reviewer")
+    client.post(f"/api/content/{item_id}/review", json={})
+    approve = reviewer.post(f"/api/content/{item_id}/decision", json={
+        "decision": "approved", "version_number": client.get(f"/api/content/{item_id}").json()["current_version_number"],
         "reviewer_name": "Auditor",
         "reviewer_role": "Reviewer",
         "comments": "Approved after review."

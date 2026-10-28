@@ -101,6 +101,7 @@ class FindingResponse(BaseModel):
     is_applied: bool
     is_dismissed: bool
     finding_source: str
+    region_json: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -151,14 +152,14 @@ class ContentItemCreate(BaseModel):
     brand_id: Optional[str] = None  # taken from the URL path; accepted for backwards compatibility
     title: str = Field(..., min_length=1, max_length=255)
     content_type: str = Field("social_post", max_length=60)
-    body: str = Field(..., min_length=1)
-    created_by: str = "Creator"
+    body: str = Field(..., min_length=1, max_length=50000)
+    created_by: str = "Creator"  # ignored: the author is the signed-in user
 
 class ContentItemUpdate(BaseModel):
     title: Optional[str] = None
     content_type: Optional[str] = None
-    body: Optional[str] = None
-    change_summary: Optional[str] = None
+    body: Optional[str] = Field(None, max_length=50000)
+    change_summary: Optional[str] = Field(None, max_length=255)
     actor_name: str = "Creator"
     actor_role: str = "Content Creator"
 
@@ -171,13 +172,15 @@ class ContentItemResponse(BaseModel):
     current_version_number: int
     created_by: str
     reviewer_id: Optional[str] = None
+    media_kind: str = "text"
+    approved_version_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
 
 class CommentCreate(BaseModel):
-    text: str = Field(..., min_length=1)
+    text: str = Field(..., min_length=1, max_length=4000)
     author_name: str = "Reviewer"
     author_role: str = "Brand Reviewer"
 
@@ -196,7 +199,9 @@ class ReviewDecisionCreate(BaseModel):
     decision: str = Field(..., description="approved, changes_requested, rejected")
     reviewer_name: str = "Reviewer"
     reviewer_role: str = "Brand Reviewer"
-    comments: Optional[str] = None
+    comments: Optional[str] = Field(None, max_length=4000)
+    version_number: Optional[int] = Field(None, ge=1, description="Version the reviewer inspected; required to approve")
+    evidence_confirmed: bool = False
 
 class ReviewDecisionResponse(BaseModel):
     id: str
@@ -205,6 +210,8 @@ class ReviewDecisionResponse(BaseModel):
     decision: str
     reviewer_name: str
     reviewer_role: str
+    reviewer_user_id: Optional[str] = None
+    evidence_confirmed: bool = False
     comments: Optional[str] = None
     created_at: datetime
 
@@ -216,6 +223,10 @@ class ContentItemDetailResponse(ContentItemResponse):
     latest_review: Optional[ReviewRunResponse] = None
     comments: List[CommentResponse] = []
     decisions: List[ReviewDecisionResponse] = []
+    claim_checks: List[Dict[str, Any]] = []
+    approval_status: Optional[Dict[str, Any]] = None
+    publications: List[Dict[str, Any]] = []
+    image: Optional[Dict[str, Any]] = None
 
     model_config = {"from_attributes": True}
 

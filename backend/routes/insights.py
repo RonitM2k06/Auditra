@@ -3,13 +3,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.database import get_db
+from backend.auth import authorize, current_user
+from backend.models_r3 import User
 from backend.models import Brand, BrandRule, ContentItem, ContentVersion, ReviewRun, Finding, ReviewDecision, AuditEvent
 from backend.schemas import GovernanceInsightsResponse
 
 router = APIRouter(prefix="/brands/{brand_id}", tags=["Governance Insights"])
 
 @router.get("/insights", response_model=GovernanceInsightsResponse)
-def get_governance_insights(brand_id: str, db: Session = Depends(get_db)):
+def get_governance_insights(brand_id: str, user: User = Depends(current_user),
+    db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "workspace.view")
     brand = db.query(Brand).filter(Brand.id == brand_id).first()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")

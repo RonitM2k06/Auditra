@@ -1,0 +1,7 @@
+Northstar Security & Compliance Overview (fictional, for the AUDITRA demo)
+
+Northstar is ISO 27001 certified for its managed control plane.
+
+Northstar is not HIPAA certified and must not be marketed for regulated health workloads.
+
+Customer data is encrypted at rest with AES-256 and in transit with TLS 1.3.
