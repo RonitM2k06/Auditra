@@ -40,6 +40,11 @@ Automated checks inform the decision; a named, authenticated human makes it.
 | **Brand DNA digital twin** | ✅ Round 3 | Dimensions from real records, definite/possible contradictions, safe in-memory simulation |
 | **Cross-channel consistency graph** | ✅ Round 3 | Price/date/quantity/disclosure comparison across campaign assets and brief |
 | **Decision replay** | ✅ Round 3 | Version diff, finding comparison, rule snapshots (recorded from Round 3 onwards), timeline, counterfactual |
+| **Campaign Risk Radar** | ✅ Post-Round 3 | De-duplicated campaign risks from findings, claims, cross-asset conflicts and approvals; level = highest severity (not a probability); detected vs heuristic; deep links to evidence; marked incomplete when assets are unanalysed |
+| **Smart Remediation Workbench** | ✅ Post-Round 3 | Fix suggestions from rules and sources; in-memory before/after preview with checks re-run; figure/date changes need explicit confirmation against a cited source; "evidence needed" instead of invented corrections; applying creates a new version and resets approval |
+| **What-If policy simulator** | ✅ Post-Round 3 | Saved rule-change proposals with pass/review/fail per item before and after; activation needs a different admin, explicit confirmation and a simulation run against the current rulebook; audited |
+| **Governance Coverage Map** | ✅ Post-Round 3 | Policy × check × source × asset matrix; "not checked" (including rules added after an analysis) is never shown as "passed"; flags missing checks, uncited/expired sources and conflicts |
+| **Governance Copilot (AI agent)** | ✅ Post-Round 3 | Read-only agent with 7 permission-scoped lookup tools; every answer shows its lookups. Uses Claude (`claude-opus-5-5`, tool use) when `ANTHROPIC_API_KEY` is set, otherwise a deterministic router over the same tools; the UI says which answered |
 | SSO, live CMS/social connectors, OCR for scanned PDFs, video | ❌ Not implemented | See roadmap |
 
 ---
@@ -120,7 +125,7 @@ For frontend hot reload, keep the backend running and run `npm run dev` in `fron
 | `DATABASE_URL` | `sqlite:///./auditra.db` | SQLAlchemy URL. `postgres://` URLs are converted to psycopg automatically. |
 | `AUDITRA_DEMO_LOGIN` | `true` | Set `false` to disable one-click demo personas. |
 | `CORS_ORIGINS` | empty | Comma-separated origins. Empty = same-origin only (the SPA is served by the same app). |
-| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | empty | Optional AI step for text reviews. Server-side only. |
+| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | empty | Optional AI step for text reviews. `ANTHROPIC_API_KEY` also switches the Governance Copilot from its rule-based fallback to Claude. Server-side only. |
 
 There are **no default administrator credentials**. Demo personas have no password and can only sign in through the demo endpoint; they are members of the fictional demo workspace only. Anyone can register an account; they become admin of the workspaces they create and cannot see others.
 
@@ -133,12 +138,12 @@ New tables are created with `create_all`. Columns added to existing Round 2 tabl
 ## Tests and evaluation
 
 ```bash
-venv\Scripts\python -m pytest -q        # 63 tests, isolated temporary SQLite database
+venv\Scripts\python -m pytest -q        # 92 tests, isolated temporary SQLite database
 cd frontend && npm run build            # tsc -b + vite build
 python evaluation/run_eval.py           # writes evaluation/RESULTS.md and results.json
 ```
 
-**Results on 29 Oct 2026:** 63 passed, 0 failed; frontend build succeeds.
+**Results on 29 Oct 2026:** 92 passed, 0 failed; frontend build succeeds (63 at the Round 3 commitment checkpoint, 29 added with the risk radar, remediation, simulator, coverage map and Copilot).
 
 The suites cover anonymous access, CSRF header enforcement, password hashing, session revocation, creator/reviewer privilege boundaries, cross-workspace isolation, permission-failure auditing, malformed JSON, empty/whitespace/oversized input, invalid IDs, stale-version approvals, self-approval, duplicate approvals, two-approver and evidence-confirmation policies, approval invalidation on edit, publishing drafts / rejected / stale versions, duplicate publishes, image validation (empty, wrong type, corrupt, tiny, renamed text file, oversized), OCR → rule → region mapping, contrast maths, palette ΔE, logo match, claim verdicts, PDF ingestion, source metadata (dates never invented), Brand DNA provenance, contradiction detection, simulation leaving data unchanged, campaign mismatches with passages, unrelated numbers not flagged, replay diffs and counterfactuals, and empty workspaces.
 
