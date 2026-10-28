@@ -18,6 +18,7 @@ import { BrandDna } from './pages/BrandDna';
 import { Campaigns } from './pages/Campaigns';
 import { Replay } from './pages/Replay';
 import { NewCreative } from './pages/NewCreative';
+import { Copilot } from './components/Copilot';
 import type { Brand, Me } from './types';
 import { api, type HealthStatus } from './api';
 
@@ -268,6 +269,7 @@ function Shell() {
           {page()}
         </main>
       </div>
+      <Copilot brandId={brand.id} brandName={brand.name} />
       <NewBrandModal
         open={newBrandOpen}
         onClose={() => setNewBrandOpen(false)}

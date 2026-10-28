@@ -14,6 +14,7 @@ from backend.models import ApprovedClaim, AuditEvent, Brand, BrandRule, ContentI
 from backend.models_r3 import ApprovalPolicy, BrandLogo, Campaign, CampaignAsset, ClaimCheck, Publication, RuleSnapshot, SourceDocument, User
 from backend.review_pipeline import brand_palette
 from backend.risk import campaign_risk as compute_campaign_risk
+from backend import copilot
 
 router = APIRouter(tags=["Brand intelligence"])
 
@@ -267,3 +268,27 @@ def counterfactual(content_id: str, version_number: int, payload: SimulationIn, 
         raise HTTPException(status_code=404, detail="Version not found")
     result = simulate(db, item.brand_id, payload.changes, only=[(item, v)])
     return {**result["items"][0], "new_contradictions": result["new_contradictions"], "note": result["note"]}
+
+
+# --- Governance Copilot (read-only agent) ---
+
+class CopilotTurn(BaseModel):
+    role: str = Field(..., pattern="^(user|assistant)$")
+    content: str = Field(..., max_length=4000)
+
+
+class CopilotIn(BaseModel):
+    question: str = Field(..., min_length=2, max_length=1000)
+    history: List[CopilotTurn] = Field(default_factory=list, max_length=12)
+
+
+@router.post("/brands/{brand_id}/copilot")
+def ask_copilot(brand_id: str, payload: CopilotIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    actor = authorize(db, user, brand_id, "workspace.view")
+    brand = db.query(Brand).filter(Brand.id == brand_id).first()
+    result = copilot.ask(db, brand, payload.question.strip(), [t.model_dump() for t in payload.history])
+    db.add(AuditEvent(brand_id=brand_id, event_type="copilot_query", actor_name=actor.name, actor_role=actor.role_label,
+                      description=f"Asked the Governance Copilot: '{payload.question.strip()[:120]}'",
+                      event_metadata=json.dumps({"mode": result.get("mode"), "tools": [t["tool"] for t in result["trace"]]})))
+    db.commit()
+    return result

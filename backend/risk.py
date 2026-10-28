@@ -148,7 +148,12 @@ def campaign_risk(db: Session, campaign: Campaign) -> Dict[str, Any]:
         for iss in cons["issues"]:
             if iss["kind"] in ("confirmed_mismatch", "uncertain"):
                 fact = facts[iss["fact_id"]]
-                values = sorted({m["display"] for m in fact["members"]})
+                # One label per distinct value ("Nov 12" and "November 12, 2026" are the same date).
+                by_value: Dict[str, str] = {}
+                for m in fact["members"]:
+                    norm = m["value"][:5] if fact["type"] == "date" else m["value"]
+                    by_value.setdefault(norm, m["display"])
+                values = sorted(by_value.values())
                 add(f"mismatch:{fact['type']}:{'|'.join(values)}", {
                     "severity": "high" if iss["kind"] == "confirmed_mismatch" else "medium", "kind": "conflict",
                     "category": iss["kind"], "source": "consistency graph",
