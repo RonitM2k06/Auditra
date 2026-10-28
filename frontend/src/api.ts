@@ -5,6 +5,7 @@ import {
   BrandDna, RuleChange, Simulation, SimulationItem, Campaign, Consistency, Replay, Comment
 } from './types';
 import type { RiskReport } from './components/RiskRadar';
+import type { RemediationPreview, Suggestion } from './components/RemediationPanel';
 
 const API_BASE = '/api';
 
@@ -211,6 +212,12 @@ export const api = {
   deleteCampaign: (id: string) => request<void>(`/campaigns/${id}`, { method: 'DELETE' }),
   getConsistency: (id: string) => request<Consistency>(`/campaigns/${id}/consistency`),
   getCampaignRisk: (id: string) => request<RiskReport>(`/campaigns/${id}/risk`),
+  getRemediation: (contentId: string) =>
+    request<{ analysed: boolean; suggestions: Suggestion[]; notice: string | null }>(`/content/${contentId}/remediation`),
+  previewRemediation: (contentId: string, version_number: number, fixes: Array<{ id: string; replacement?: string }>) =>
+    request<RemediationPreview>(`/content/${contentId}/remediation/preview`, { method: 'POST', body: JSON.stringify({ version_number, fixes }) }),
+  applyRemediation: (contentId: string, version_number: number, fixes: Array<{ id: string; replacement?: string }>, confirm_factual: boolean) =>
+    request<ContentItemDetail>(`/content/${contentId}/remediation/apply`, { method: 'POST', body: JSON.stringify({ version_number, fixes, confirm_factual }) }),
   getReplay: (contentId: string, from?: number, to?: number) =>
     request<Replay>(`/content/${contentId}/replay?${from ? `from_version=${from}&` : ''}${to ? `to_version=${to}` : ''}`),
   counterfactual: (contentId: string, version: number, changes: RuleChange[]) =>

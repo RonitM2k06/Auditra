@@ -10,7 +10,7 @@ from backend.config import settings
 from backend.database import engine, Base, get_db
 from backend.seed_data import seed_sample_workspace
 from backend.routes import brands, rules, content, reviews, workflow, audit, dashboard, insights
-from backend.routes import auth_routes, creatives, sources, intel
+from backend.routes import auth_routes, creatives, sources, intel, remediation_routes
 from backend import models_r3  # noqa: F401  (registers Round 3 tables)
 from backend.migrations import run_migrations
 
@@ -97,6 +97,7 @@ app.include_router(auth_routes.router, prefix=settings.API_V1_STR)
 app.include_router(creatives.router, prefix=settings.API_V1_STR)
 app.include_router(sources.router, prefix=settings.API_V1_STR)
 app.include_router(intel.router, prefix=settings.API_V1_STR)
+app.include_router(remediation_routes.router, prefix=settings.API_V1_STR)
 
 # Serve built frontend if dist directory exists
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))

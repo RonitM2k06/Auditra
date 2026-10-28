@@ -23,6 +23,7 @@ import {
 import { DecisionModal, type Decision } from '../components/DecisionModal';
 import { CreativeView } from '../components/CreativeView';
 import { ApprovalPanel, ClaimsPanel } from '../components/GovernancePanels';
+import { RemediationPanel } from '../components/RemediationPanel';
 import type { Brand, ContentItemDetail, ContentVersion, Finding } from '../types';
 import { api } from '../api';
 
@@ -72,8 +73,8 @@ export function Studio({ brand, contentId, initialTab, role, navigate, onChanged
   const [busy, setBusy] = useState<Busy>(null);
 
   const [mode, setMode] = useState<'edit' | 'marked'>('edit');
-  type Panel = 'findings' | 'claims' | 'approval' | 'history' | 'discussion';
-  const [panel, setPanel] = useState<Panel>((['findings', 'claims', 'approval', 'history', 'discussion'].includes(initialTab ?? '') ? initialTab : 'findings') as Panel);
+  type Panel = 'findings' | 'fix' | 'claims' | 'approval' | 'history' | 'discussion';
+  const [panel, setPanel] = useState<Panel>((['findings', 'fix', 'claims', 'approval', 'history', 'discussion'].includes(initialTab ?? '') ? initialTab : 'findings') as Panel);
   const [sevFilter, setSevFilter] = useState<string>('all');
   const [srcFilter, setSrcFilter] = useState<SourceFilter>('all');
   const [selected, setSelected] = useState<string | null>(null);
@@ -567,6 +568,7 @@ export function Studio({ brand, contentId, initialTab, role, navigate, onChanged
               onChange={setPanel}
               items={[
                 { id: 'findings', label: 'Findings', count: review ? openFindings.length : undefined },
+                { id: 'fix', label: 'Fix' },
                 { id: 'claims', label: 'Claims', count: review ? (contradictedClaims || claimChecks.length) : undefined },
                 { id: 'approval', label: 'Approval' },
                 { id: 'history', label: 'History', count: item?.versions.length },
@@ -665,6 +667,14 @@ export function Studio({ brand, contentId, initialTab, role, navigate, onChanged
                   </>
                 )}
               </>
+            )}
+
+            {panel === 'fix' && (
+              item ? (
+                <RemediationPanel item={item} canEdit={canEdit} toast={toast} onApplied={(d) => { hydrate(d); setMode('edit'); onChanged(); }} />
+              ) : (
+                <p className="px-6 py-10 text-center text-[13px] text-ink-500">Save and analyse the piece to get fix suggestions.</p>
+              )
             )}
 
             {panel === 'claims' && (
