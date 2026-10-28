@@ -182,3 +182,24 @@ class RuleSnapshot(Base):
     policies_json = Column(Text, nullable=False, default="[]")
     sources_json = Column(Text, nullable=False, default="[]")
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
+
+
+class RuleProposal(Base):
+    """A draft rulebook change. Simulated against current content; activated only by a separate admin."""
+    __tablename__ = "rule_proposals"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    brand_id = Column(String(36), ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    rationale = Column(Text, nullable=True)
+    changes_json = Column(Text, nullable=False)
+    simulation_json = Column(Text, nullable=False)
+    rulebook_fingerprint = Column(String(64), nullable=False)  # rulebook state the simulation ran against
+    status = Column(String(20), nullable=False, default="proposed")  # proposed, activated, rejected
+    proposed_by = Column(String(100), nullable=False)
+    proposed_by_user_id = Column(String(36), nullable=False)
+    decided_by = Column(String(100), nullable=True)
+    decision_note = Column(Text, nullable=True)
+    simulated_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
+    decided_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)

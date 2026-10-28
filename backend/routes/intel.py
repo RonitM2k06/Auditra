@@ -62,6 +62,15 @@ def get_brand_dna(brand_id: str, user: User = Depends(current_user), db: Session
     return result
 
 
+def rule_outcome(findings: List[Dict[str, Any]]) -> str:
+    """Rule-check outcome for one text: fail (critical/high), review (medium or needs a human), else pass."""
+    if any(f["severity"] in ("critical", "high") for f in findings):
+        return "fail"
+    if any(f["severity"] == "medium" or f.get("requires_human_review") for f in findings):
+        return "review"
+    return "pass"
+
+
 def simulate(db: Session, brand_id: str, changes: List[Change], only: Optional[List] = None) -> Dict[str, Any]:
     rules, claims = _rules_claims(db, brand_id)
     try:
@@ -80,7 +89,11 @@ def simulate(db: Session, brand_id: str, changes: List[Change], only: Optional[L
         to_ns = lambda fs: [type("F", (), f) for f in fs]  # noqa: E731
         pol_before = {t["policy"].name for t in policy_engine.triggered_policies(policies, to_ns(before), checks)}
         pol_after = {t["policy"].name for t in policy_engine.triggered_policies(policies, to_ns(after), checks)}
+        names = {r.id: r.name for r in list(current) + list(proposed)}
+        responsible = sorted({names.get(f.get("rule_id"), f["category"]) for f in d["gained"] + d["lost"]}
+                             | {names.get(c["after"].get("rule_id"), c["after"]["category"]) for c in d["severity_changed"]})
         items_out.append({
+            "outcome_before": rule_outcome(before), "outcome_after": rule_outcome(after), "responsible_rules": responsible,
             "content_id": it.id, "title": it.title, "status": it.status, "version_number": v.version_number,
             "media_kind": it.media_kind, "findings_before": len(before), "findings_after": len(after), **d,
             "policies_added": sorted(pol_after - pol_before), "policies_removed": sorted(pol_before - pol_after),

@@ -182,6 +182,9 @@ export interface SimFinding {
 }
 
 export interface SimulationItem {
+  outcome_before: 'pass' | 'review' | 'fail';
+  outcome_after: 'pass' | 'review' | 'fail';
+  responsible_rules: string[];
   content_id: string;
   title: string;
   status: string;

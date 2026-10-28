@@ -6,6 +6,7 @@ import {
 } from './types';
 import type { RiskReport } from './components/RiskRadar';
 import type { CopilotAnswer } from './components/Copilot';
+import type { Proposal } from './components/Proposals';
 import type { RemediationPreview, Suggestion } from './components/RemediationPanel';
 
 const API_BASE = '/api';
@@ -213,6 +214,12 @@ export const api = {
   deleteCampaign: (id: string) => request<void>(`/campaigns/${id}`, { method: 'DELETE' }),
   getConsistency: (id: string) => request<Consistency>(`/campaigns/${id}/consistency`),
   getCampaignRisk: (id: string) => request<RiskReport>(`/campaigns/${id}/risk`),
+  getProposals: (brandId: string) => request<Proposal[]>(`/brands/${brandId}/rule-proposals`),
+  createProposal: (brandId: string, title: string, rationale: string, changes: RuleChange[]) =>
+    request<Proposal>(`/brands/${brandId}/rule-proposals`, { method: 'POST', body: JSON.stringify({ title, rationale, changes }) }),
+  rerunProposal: (id: string) => request<Proposal>(`/rule-proposals/${id}/rerun`, { method: 'POST' }),
+  decideProposal: (id: string, decision: 'activate' | 'reject', confirm: boolean, note: string) =>
+    request<Proposal>(`/rule-proposals/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision, confirm, note }) }),
   askCopilot: (brandId: string, question: string, history: Array<{ role: string; content: string }>) =>
     request<CopilotAnswer>(`/brands/${brandId}/copilot`, { method: 'POST', body: JSON.stringify({ question, history }) }),
   getRemediation: (contentId: string) =>

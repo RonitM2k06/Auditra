@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, FlaskConical, GitCompareArrows, ShieldQuestion } from 'lucide-react';
 import { Button, CATEGORY_LABEL, cx, Field, inputCls, Page, PageHeader, PageSkeleton, Section, SeverityTag, useToast } from '../components/ui';
 import type { Brand, BrandDna as Dna, RuleChange, Simulation, WorkspaceRole } from '../types';
+import { Outcome, Proposals } from '../components/Proposals';
 import { api } from '../api';
 
 const STATUS_STYLE: Record<string, string> = {
@@ -12,7 +13,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 type ChangeKind = 'disable' | 'severity' | 'add_prohibited' | 'replacement';
 
-export function BrandDna({ brand, role, navigate }: { brand: Brand; role: WorkspaceRole; navigate: (p: string, id?: string | null) => void }) {
+export function BrandDna({ brand, role, userId, navigate }: { brand: Brand; role: WorkspaceRole; userId: string; navigate: (p: string, id?: string | null) => void }) {
   const toast = useToast();
   const [dna, setDna] = useState<Dna | null>(null);
   const [kind, setKind] = useState<ChangeKind>('add_prohibited');
@@ -21,6 +22,10 @@ export function BrandDna({ brand, role, navigate }: { brand: Brand; role: Worksp
   const [severity, setSeverity] = useState('high');
   const [sim, setSim] = useState<Simulation | null>(null);
   const [busy, setBusy] = useState(false);
+  const [lastChange, setLastChange] = useState<RuleChange | null>(null);
+  const [propTitle, setPropTitle] = useState('');
+  const [propRationale, setPropRationale] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
   const canSimulate = role !== 'creator';
 
   useEffect(() => {
@@ -39,6 +44,7 @@ export function BrandDna({ brand, role, navigate }: { brand: Brand; role: Worksp
     setBusy(true);
     try {
       setSim(await api.simulate(brand.id, [change]));
+      setLastChange(change);
     } catch (e: any) {
       toast(e.message, 'error');
     } finally {
@@ -177,7 +183,7 @@ export function BrandDna({ brand, role, navigate }: { brand: Brand; role: Worksp
                 <div className="mt-3 overflow-x-auto">
                   <table className="w-full min-w-[640px] text-left text-[13px]">
                     <thead className="text-[11px] uppercase tracking-wider text-ink-400">
-                      <tr><th className="py-2 font-medium">Content (current version)</th><th className="font-medium">Findings</th><th className="font-medium">Gained</th><th className="font-medium">Lost</th><th className="font-medium">Policy impact</th></tr>
+                      <tr><th className="py-2 font-medium">Content (current version)</th><th className="font-medium">Outcome</th><th className="font-medium">Findings</th><th className="font-medium">Gained</th><th className="font-medium">Lost</th><th className="font-medium">Policy impact</th></tr>
                     </thead>
                     <tbody>
                       {sim.items.filter((i) => i.gained.length || i.lost.length || i.severity_changed.length || i.policies_added.length || i.policies_removed.length).map((i) => (
@@ -186,6 +192,7 @@ export function BrandDna({ brand, role, navigate }: { brand: Brand; role: Worksp
                             <button onClick={() => navigate('studio', i.content_id)} className="font-medium text-ink-900 hover:underline">{i.title}</button>
                             <p className="text-[12px] text-ink-500">v{i.version_number} · {i.status.replace('_', ' ')}</p>
                           </td>
+                          <td className="py-2 pr-2"><span className="flex items-center gap-1"><Outcome value={i.outcome_before} />→<Outcome value={i.outcome_after} /></span></td>
                           <td className="py-2 tabular-nums text-ink-700">{i.findings_before} → {i.findings_after}</td>
                           <td className="py-2 pr-3">{i.gained.map((f, k) => <p key={k} className="text-red-700">+ {CATEGORY_LABEL[f.category] ?? f.category}: “{f.matched_text}”</p>)}</td>
                           <td className="py-2 pr-3">{i.lost.map((f, k) => <p key={k} className="text-pine-700">− {CATEGORY_LABEL[f.category] ?? f.category}: “{f.matched_text}”</p>)}{i.severity_changed.map((c, k) => <p key={`s${k}`} className="text-ink-600">“{c.after.matched_text}” {c.before.severity} → {c.after.severity}</p>)}</td>
@@ -200,10 +207,33 @@ export function BrandDna({ brand, role, navigate }: { brand: Brand; role: Worksp
                   </table>
                   {sim.affected_items === 0 && <p className="py-3 text-[13px] italic text-ink-500">No current content would gain or lose findings.</p>}
                 </div>
+                {lastChange && (
+                  <form className="mt-4 grid gap-2 rounded-lg border border-dashed border-ink-300 p-3 sm:grid-cols-[1fr_1.4fr_auto] sm:items-end"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      try {
+                        await api.createProposal(brand.id, propTitle, propRationale, [lastChange]);
+                        toast('Saved as a proposal. A workspace admin (not you) can activate it.', 'success');
+                        setPropTitle('');
+                        setPropRationale('');
+                        setRefreshKey((k) => k + 1);
+                      } catch (err: any) {
+                        toast(err.message, 'error');
+                      }
+                    }}>
+                    <Field label="Proposal title" required><input className={inputCls} value={propTitle} onChange={(e) => setPropTitle(e.target.value)} minLength={3} required /></Field>
+                    <Field label="Rationale"><input className={inputCls} value={propRationale} onChange={(e) => setPropRationale(e.target.value)} /></Field>
+                    <Button type="submit" variant="primary">Save as proposal</Button>
+                  </form>
+                )}
               </div>
             )}
           </div>
         )}
+      </Section>
+
+      <Section title="Rule-change proposals" description="Saved simulations awaiting a decision. Activating changes the live rulebook; it needs a workspace admin who did not propose it, explicit confirmation, and a simulation run against the current rulebook.">
+        <Proposals brandId={brand.id} role={role} userId={userId} refreshKey={refreshKey} />
       </Section>
     </Page>
   );
