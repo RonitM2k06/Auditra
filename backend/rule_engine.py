@@ -247,7 +247,7 @@ class ComplianceRuleEngine:
             )
 
         # ALL-CAPS words with 4+ letters (excluding common acronyms like AI, API, CEO, AUDITRA, SaaS)
-        whitelist = {"AUDITRA", "SAAS", "API", "REST", "JSON", "HTTP", "HTTPS", "HTML", "CSS", "UI", "UX", "CEO", "CTO", "CIO", "AI", "ML", "LLM"}
+        whitelist = {"AUDITRA", "SAAS", "API", "REST", "JSON", "HTTP", "HTTPS", "HTML", "CSS", "UI", "UX", "CEO", "CTO", "CIO", "AI", "ML", "LLM", "HIPAA", "GDPR", "SOC", "ISO", "SLA", "AES", "TLS", "PCI", "CCPA", "FAQ"}
         for match in re.finditer(r"\b[A-Z]{4,}\b", text):
             word = match.group(0)
             if word not in whitelist and word not in self.allowed_caps:

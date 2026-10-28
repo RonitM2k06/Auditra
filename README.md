@@ -1,179 +1,207 @@
-# AUDITRA — Brand Governance & Content Review
+# AUDITRA — Evidence-first Brand Governance
 
-> **Techcircuit Round 2 — The Build** · Team **Quoding**
+> **TechCircuit Round 3** · Team **Quoding** — Arya Kashyap (Team Leader), Ronit Mongia, Moli Verma
 
-AUDITRA checks marketing copy against a brand's approved rules **before it ships**. Every finding points to the exact passage that triggered it and the configured rule or source behind it, offers a targeted correction, and feeds a human approval workflow with a full audit trail.
+AUDITRA checks marketing copy **and image creatives** against a brand's rules and **approved source documents** before anything ships. Every finding points to the passage, image region, rule or source behind it. Approval is enforced on the server by configurable policies, bound to an exact content version, and only that approved version can be published.
 
-It is deliberately not a free-form writing assistant: automated checks inform the decision, and a named human reviewer makes it.
+Automated checks inform the decision; a named, authenticated human makes it.
 
-**Live demo:** https://auditra-bice.vercel.app/ (fictional demo data only; no login)  
 **Repository:** https://github.com/RonitM2k06/Auditra
-
-![Review studio with an expanded finding](docs/screenshots/03-finding-expanded.png)
+**Live demo:** see [Deployment status](#deployment-status) — the Round 3 build is deployed only after the checklist there is complete.
 
 ---
 
-## What is implemented
+## What a judge can do in five minutes
 
-| Area | What works today |
-|---|---|
-| **Workspaces** | Multiple brand workspaces with a switcher. A fictional demo brand, *Northstar Cloud*, is seeded on first start and can be reset from Settings. |
-| **Brand rulebook** | Create, edit, enable/disable and delete rules in six categories (prohibited wording, terminology, required disclosure, restricted claim, tone & voice, style) with severity, match pattern, suggested replacement and source reference. Approved-claims registry. Import of `.txt`/`.md` guideline files: matching lines become rules (created **active**, so review them after import). |
-| **Rule engine** | Deterministic checks with exact character offsets: prohibited phrases, preferred terminology, missing required disclosures, restricted claims, unverified outcome claims and style checks. |
-| **Optional AI step** | If a Gemini, OpenAI or Anthropic key is set, the server also asks the model for findings. Model output is grounded: unknown rule IDs are discarded and offsets are re-located in the actual text. If the call fails, the review completes with rule findings and records `ai_status: failed`. |
-| **Review studio** | Plain-text editor with marked-up view, severity-coded highlights, findings panel with severity counts and source filter, expandable findings (why it matters → brand rule / evidence → suggested correction), apply / edit-then-apply / dismiss, stale-review warnings, version history and discussion. |
-| **Corrections & versions** | Applying a suggestion replaces only the matched passage, creates a new immutable version and is recorded in the audit trail. Re-running the review checks the new version. |
-| **Approval workflow** | Server-enforced states: Draft → In review → Approved / Changes requested / Rejected. Requesting changes or rejecting requires a note. Approving with open critical/high findings shows an explicit warning. |
-| **Approval queue** | Status counts, queue with highest severity and open findings per item, reviewer detail pane with copy, findings, discussion and decision actions. |
-| **Audit trail** | Chronological timeline of server-recorded events (drafts, reviews, corrections, submissions, comments, decisions, rule changes) with actor, time, related content and labelled details. |
-| **Overview & insights** | Dashboard KPIs, items needing attention, workflow status and open findings by severity; insights for findings by category, most-triggered rules, unresolved critical/high findings and decision turnaround. All computed from stored data. |
-| **Demo roles** | “Acting as” switcher: Alex Rivers (Content Creator), Sarah Chen (Brand Compliance Lead), Workspace Admin. **This is a demo convenience, not authentication.** |
+1. Open the app and choose a **demo persona** (Alex the creator, Sarah the compliance lead, Morgan the admin). These are real accounts with server-enforced permissions, limited to the fictional *Northstar Cloud* workspace.
+2. **Content reviews → "Migration promo social creative (sample)" → Run analysis.** The image's text is read by OCR; prohibited wording, missing disclosure, low-contrast text, an off-palette colour and a missing logo are drawn as regions on the creative.
+3. **Campaigns → Atlas Pro launch.** The graph shows the landing page stating **$59** and **November 14** while the brief, email and social post say **$49** and **November 12**, plus a missing disclaimer — each with the exact passages side by side.
+4. Open the **landing page → Run analysis → Claims tab.** "$59 per member per month" is *contradicted* by the current fact sheet (the figure only appears in an expired 2025 pricing sheet), and the cited passage, document, section and dates are shown.
+5. **Submit for approval**, sign out, sign in as **Sarah**, approve. The **Approval tab** shows which policies the version triggered and what is still missing (e.g. evidence confirmation, a second approver). Try **Publish** before approval: it is refused and the refusal is in the audit trail.
+6. **Brand DNA** shows the rulebook as structured dimensions, a deliberately seeded rule conflict, and a **simulator** that previews a rule change across all content without changing anything.
+7. Any item → **Replay**: text diff between versions, resolved/new/persisting findings, rulebook snapshots, and the audit timeline.
+
+---
+
+## Feature status
+
+| Area | Status | Notes |
+|---|---|---|
+| Brand workspaces, rulebook, approved-claims registry, guideline import | ✅ Round 2, kept | |
+| Deterministic rule engine with offsets; optional AI step with grounding and fallback | ✅ Round 2, kept | AI step runs only for text and only with a provider key |
+| Targeted corrections, immutable versions, discussion, audit trail, dashboard, insights | ✅ Round 2, kept | |
+| **Authentication** (email + password, demo personas) | ✅ Round 3 | PBKDF2-SHA256 (310k), HttpOnly SameSite=Lax session cookie, server-side revocation |
+| **Authorisation** (creator / reviewer / admin per workspace) | ✅ Round 3 | Explicit permission matrix in `backend/auth.py`, checked on every endpoint |
+| **Approval policies** | ✅ Round 3 | Severity, claim-status and category triggers; required role, distinct approvers, evidence confirmation |
+| **Version-bound approvals** | ✅ Round 3 | Approvals name the reviewed version; edits invalidate approval; self-approval blocked |
+| **Publishing connector** | ✅ Round 3 (sandbox) | Local sandbox export record, idempotent per version. **Not** a live third-party integration |
+| **Image creative analysis** | ✅ Round 3 | Content-validated PNG/JPEG intake, on-server OCR with boxes, rules on OCR text, WCAG contrast, palette ΔE, logo similarity |
+| **Evidence retrieval & claim verification** | ✅ Round 3 | TXT/MD/PDF sources, BM25 passages, five conservative verdicts, staleness from supplied dates only |
+| **Brand DNA digital twin** | ✅ Round 3 | Dimensions from real records, definite/possible contradictions, safe in-memory simulation |
+| **Cross-channel consistency graph** | ✅ Round 3 | Price/date/quantity/disclosure comparison across campaign assets and brief |
+| **Decision replay** | ✅ Round 3 | Version diff, finding comparison, rule snapshots (recorded from Round 3 onwards), timeline, counterfactual |
+| SSO, live CMS/social connectors, OCR for scanned PDFs, video | ❌ Not implemented | See roadmap |
 
 ---
 
 ## Architecture
 
 ```
-Browser ── React 19 + TypeScript SPA (Vite, Tailwind CSS, lucide-react)
-   │        hash routes: #/overview, #/studio/<id>, #/rulebook, …
-   │  JSON over /api
+Browser ── React 19 + TypeScript SPA (Vite, Tailwind)  ── hash routes, HttpOnly session cookie
+   │  JSON / multipart over /api  (state-changing calls carry X-Auditra-Client)
    ▼
-FastAPI (single process, also serves frontend/dist)
-   ├── routes/      brands · rules & claims · content · reviews · workflow · audit · dashboard · insights
-   ├── rule_engine  deterministic matcher → findings with offsets + source references
-   ├── ai_service   optional LLM step (Gemini → OpenAI → Anthropic), grounded + fail-safe
-   └── SQLAlchemy 2 ─► SQLite (WAL, foreign keys) — auditra.db
+FastAPI
+   ├── auth.py            sessions, PBKDF2 hashing, permission matrix, workspace scoping
+   ├── review_pipeline.py one analysis run: rules → (AI) → OCR regions → visual checks → claim checks → rule snapshot
+   ├── rule_engine.py     deterministic matcher with offsets
+   ├── vision.py          image validation, RapidOCR (ONNX), contrast, palette ΔE, logo template matching
+   ├── evidence.py        source ingestion (txt/md/pdf), BM25 retrieval, claim extraction + verdicts
+   ├── policies.py        approval-policy evaluation per version
+   ├── intelligence.py    Brand DNA, contradictions, simulation, campaign consistency, replay diffs
+   ├── migrations.py      additive, idempotent column migrations
+   └── SQLAlchemy 2 ─► SQLite (local) or Postgres (Neon on Vercel)
 ```
 
-**Review data flow:** the studio saves the text as a content version → `POST /api/content/{id}/review` runs the rule engine (and the AI step if configured) against the brand's active rules and claims → findings are stored against that version → applying a finding creates the next version → submit and decision endpoints move the item through the state machine → every step writes an audit event.
+**Data flow of an analysis:** current version → rule engine (offsets) → for creatives, findings mapped back to OCR boxes and visual checks measured from pixels → candidate claims retrieved against approved sources and classified → findings, claim checks and a snapshot of the rules/policies/sources used are stored against that version → policy evaluation decides what approval this version needs → decisions are recorded against the version → publish re-checks status, version and policies before writing the sandbox record.
+
+### Main API
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/auth/login`, `/register`, `/demo`, `/logout`, `GET /api/auth/me` | Sessions |
+| `GET/POST/PUT/DELETE /api/brands/{id}/members` | Workspace roles (admin) |
+| `POST /api/brands/{id}/content`, `PUT /api/content/{id}` | Text content and versions |
+| `POST /api/brands/{id}/creatives`, `POST /api/content/{id}/creative` | Upload a creative / revision |
+| `POST /api/content/{id}/review` | Run the analysis on the current version |
+| `POST /api/content/{id}/submit`, `/decision`, `GET /approval-status` | Workflow and policy status |
+| `POST /api/content/{id}/publish`, `GET /api/publications/{id}/export` | Sandbox publishing |
+| `GET/POST/PUT/DELETE /api/brands/{id}/sources`, `POST /evidence/search`, `/evidence/verify` | Evidence library |
+| `GET/POST/PUT/DELETE /api/brands/{id}/policies` | Approval policies |
+| `GET /api/brands/{id}/dna`, `POST /api/brands/{id}/simulate` | Brand DNA and simulation |
+| `GET/POST /api/brands/{id}/campaigns`, `GET /api/campaigns/{id}/consistency` | Campaigns |
+| `GET /api/content/{id}/replay`, `POST /api/content/{id}/versions/{n}/counterfactual` | Decision replay |
+| `GET /api/health` | Health, version, database kind, deployed commit |
+
+### Supported formats and limits
+
+| Input | Accepted | Limits |
+|---|---|---|
+| Creatives | PNG, JPEG — validated by magic bytes and full decode, never by filename/MIME | 4 MB, 64–6000 px per side, 30 MP |
+| Reference logo | PNG, JPEG | 1 MB |
+| Sources | UTF-8 `.txt`, Markdown, text-based PDF (pypdf) | 2 MB, 60 PDF pages; encrypted or scanned PDFs are rejected/empty |
+| Text content | Plain text | 50,000 characters |
+
+Uploaded creatives are stored in the database with their version (so reviewers see exactly what was approved). They are never sent to external services. Nothing is written to the server filesystem.
 
 ---
 
 ## Run it locally
 
-Prerequisites: Python 3.10+ (verified on 3.12.7) and Node.js 18+ (verified on 24.16.0).
+Prerequisites: Python 3.10+ (tested on 3.12.7) and Node.js 20+ (tested on 24).
 
 ```bash
-# 1. Backend dependencies
 python -m venv venv
-venv\Scripts\activate            # Windows   (macOS/Linux: source venv/bin/activate)
-pip install -r requirements.txt
+venv\Scripts\activate            # macOS/Linux: source venv/bin/activate
+pip install -r requirements.txt  # includes rapidocr-onnxruntime (OCR models ship with the package)
 
-# 2. Build the frontend
-cd frontend
-npm install
-npm run build
-cd ..
+cd frontend && npm ci && npm run build && cd ..
 
-# 3. Start the app (API + built frontend on one port)
 uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open **http://localhost:8000**. On first start the database file `auditra.db` is created and the Northstar demo workspace is seeded automatically.
+Open http://localhost:8000 and pick a demo persona. On first start the database is created, migrations run, and the fictional Northstar workspace is seeded (rules, policies, three sources, a campaign, three sample creatives). The first creative analysis loads the OCR model (~1–2 s).
 
-For frontend development with hot reload, keep the backend running and run `npm run dev` in `frontend/` (Vite proxies `/api` to port 8000).
+For frontend hot reload, keep the backend running and run `npm run dev` in `frontend/` (Vite proxies `/api`).
 
 ### Environment variables
 
-The app reads these from the process environment (there is no `.env` loader, so set them in your shell or hosting platform):
-
 | Variable | Default | Purpose |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///./auditra.db` | SQLAlchemy database URL. |
-| `GEMINI_API_KEY` | empty | Enables the AI step via Gemini (checked first). |
-| `OPENAI_API_KEY` | empty | Enables the AI step via OpenAI if no Gemini key. |
-| `ANTHROPIC_API_KEY` | empty | Enables the AI step via Anthropic if neither of the above. |
+| `DATABASE_URL` | `sqlite:///./auditra.db` | SQLAlchemy URL. `postgres://` URLs are converted to psycopg automatically. |
+| `AUDITRA_DEMO_LOGIN` | `true` | Set `false` to disable one-click demo personas. |
+| `CORS_ORIGINS` | empty | Comma-separated origins. Empty = same-origin only (the SPA is served by the same app). |
+| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | empty | Optional AI step for text reviews. Server-side only. |
 
-PowerShell example: `$env:GEMINI_API_KEY = "..." ; uvicorn backend.main:app --port 8000`
+There are **no default administrator credentials**. Demo personas have no password and can only sign in through the demo endpoint; they are members of the fictional demo workspace only. Anyone can register an account; they become admin of the workspaces they create and cannot see others.
 
-With no key set, `/api/health` reports `ai_engine: deterministic_fallback`, the UI shows **Rules only**, and every review runs the rule engine alone. Keys are only read server-side and are never sent to the browser.
+### Database and migrations
+
+New tables are created with `create_all`. Columns added to existing Round 2 tables are applied by `backend/migrations.py` as nullable/defaulted `ALTER TABLE ADD COLUMN` statements, recorded in `schema_migrations` and safe to re-run. An existing Round 2 Northstar workspace is upgraded in place (demo personas, policies, sources, campaign and creatives are added; existing rows are kept). This was tested against a copy of the Round 2 SQLite database.
 
 ---
 
-## Tests
+## Tests and evaluation
 
 ```bash
-venv\Scripts\python -m pytest -q tests
+venv\Scripts\python -m pytest -q        # 63 tests, isolated temporary SQLite database
+cd frontend && npm run build            # tsc -b + vite build
+python evaluation/run_eval.py           # writes evaluation/RESULTS.md and results.json
 ```
 
-`tests/conftest.py` points `DATABASE_URL` at a temporary SQLite file, so test runs never write into the demo database.
+**Results on 29 Oct 2026:** 63 passed, 0 failed; frontend build succeeds.
 
-**Verified on 24 Oct 2026:**
-- Backend test suite: **11 passed** (rule engine positives and negatives, workspace seeding, content lifecycle and corrections, creation without `brand_id` in the body, dashboard/insights, guideline upload, claims, state-machine enforcement, end-to-end judge journey).
-- Frontend production build (`npm run build`, which includes `tsc -b`): **succeeds**.
-- Ad-hoc HTTP smoke script (not committed) against a running server on a throwaway database: 21/21 checks (rule create/edit/validation, content creation, rule findings with offsets and source, deterministic fallback, correction → v2, re-review, state machine, dashboard/queue consistency, comments, approval, version history, audit lifecycle, 404 handling), plus persistence of brand, status and audit trail across a server restart.
-- AI failure path: with an invalid provider key, reviews still complete with rule findings and `ai_status: failed`. **A successful live AI call was not tested** (no provider key available).
-- Browser check (Chrome via Playwright) of every screen at 1440×900, 1024×768, 768×1024 and 375×812: no console errors, no failed API calls, no horizontal overflow. Full creator → reviewer journey completed in the UI.
+The suites cover anonymous access, CSRF header enforcement, password hashing, session revocation, creator/reviewer privilege boundaries, cross-workspace isolation, permission-failure auditing, malformed JSON, empty/whitespace/oversized input, invalid IDs, stale-version approvals, self-approval, duplicate approvals, two-approver and evidence-confirmation policies, approval invalidation on edit, publishing drafts / rejected / stale versions, duplicate publishes, image validation (empty, wrong type, corrupt, tiny, renamed text file, oversized), OCR → rule → region mapping, contrast maths, palette ΔE, logo match, claim verdicts, PDF ingestion, source metadata (dates never invented), Brand DNA provenance, contradiction detection, simulation leaving data unchanged, campaign mismatches with passages, unrelated numbers not flagged, replay diffs and counterfactuals, and empty workspaces.
+
+**Evaluation (fixed date 2026-10-29, fictional team-authored data — not a real-world accuracy estimate):**
+
+- Creatives: 4 labelled samples, 8 expected finding labels → 8 found, 0 false positives, 0 missed. These samples were created during development, so this shows designed behaviour, not generalisation.
+- Claims: 21 claims vs 3 sources → **19/21 correctly classified, 0 claims wrongly marked "supported"**, expected document cited 15/15. The two errors are unsupported claims classified *needs review* (the conservative direction).
+
+Full tables: [`evaluation/RESULTS.md`](evaluation/RESULTS.md).
 
 ---
 
-## Demo walkthrough (about 3 minutes)
+## Security notes
 
-1. **Overview** — open http://localhost:8000. See KPIs, what needs attention and open findings by severity.
-2. **New review** — click *New review*, then *Use sample copy* (fictional promo text that breaks several rules on purpose), then **Run review**.
-3. **Inspect a finding** — expand *Prohibited wording · “guarantees results”*: the explanation, the brand rule (*Northstar Legal Governance Standard §4.1*) and the suggested correction. Clicking a finding jumps to its passage.
-4. **Apply the correction** — click **Apply**. A new version is saved; click **Re-run review** to confirm the issue is gone.
-5. **Submit for approval** — confirm the warning about remaining open findings.
-6. **Decide as reviewer** — switch *Acting as* (bottom of the sidebar) to **Sarah Chen**. Use *Request changes* (note required) or *Approve* in the studio or the **Approval queue**.
-7. **Trace it** — open **Audit trail** to see each step with actor, time and version. Refresh: everything persists.
+- Every protected endpoint checks the session and the caller's role **in the target workspace**; non-members get 404 so workspace IDs cannot be probed. Permission denials inside a workspace are written to its audit trail.
+- Sessions: 256-bit random tokens, only SHA-256 hashes stored, 12-hour expiry, revoked on logout. Cookies are HttpOnly, SameSite=Lax, and Secure on HTTPS. No tokens in `localStorage`.
+- State-changing API calls require the `X-Auditra-Client` header (blocked cross-site without CORS); CORS is closed by default.
+- Login has a best-effort per-process throttle (8 failures / 5 min). On serverless hosts instances do not share it.
+- Uploads are validated by content; decompression bombs are refused; filenames are never used as paths.
+- The audit trail is an append-only **application log in an ordinary table**, not a tamper-proof ledger.
+- The publish connector is a **local sandbox**: it records an export (content, SHA-256, approvals) and sends nothing anywhere.
 
-To return the demo to its starting state: **Settings → Reset demo workspace**. This deletes and re-seeds only the brand with slug `northstar`; other workspaces are untouched.
+## Known limitations
+
+- Lexical retrieval (BM25) misses paraphrases with no shared words; contradictions are detected only via differing figures/dates with the same unit. Contradictory wording (e.g. "is HIPAA certified" vs "is not") is routed to *needs review*, not auto-labelled.
+- OCR can misread stylised text; rules apply to the transcription. Contrast estimates are less reliable over gradients/photos. Logo similarity is not proof of authenticity or correct placement.
+- Rule snapshots exist only for analyses run after the Round 3 upgrade; earlier history is not reconstructed.
+- The shared demo workspace is used by every visitor; a reset affects everyone.
+- No SSO; no live publishing destinations; images only (no video); scanned PDFs need OCR first.
 
 ---
 
 ## Deployment
 
-AUDITRA runs as a single Python web process that serves both the API and the built SPA, so any host that can run `uvicorn` works (e.g. Render, Railway, Fly.io, a VM):
+Vercel (`vercel.json` + `api/index.py`) with a Neon Postgres database supplied via `DATABASE_URL`. The Python function bundles the OCR runtime (Vercel functions allow up to 5 GB), `maxDuration` is 60 s, and request bodies are capped by Vercel at 4.5 MB, which is why creatives are limited to 4 MB. `index.html` is served with `Cache-Control: no-cache` so a deploy never runs against a stale bundle.
 
-1. Build step: `pip install -r requirements.txt && cd frontend && npm ci && npm run build`
-2. Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-3. Set provider keys as platform secrets if you want the AI step.
-4. SQLite needs a **persistent disk** mounted where `DATABASE_URL` points (e.g. `sqlite:////data/auditra.db`); on ephemeral filesystems data resets on redeploy.
+1. Import the repo in Vercel (Framework Preset **Other**), connect a Postgres database so `DATABASE_URL` is set.
+2. Deploy. On the first request migrations run and the demo workspace is seeded or upgraded in place.
+3. Check `GET /api/health` — `commit` should match the deployed Git commit.
 
-### Vercel (current)
+The `Dockerfile` works for container hosts (use a persistent volume if you use SQLite).
 
-The repo is ready to import into Vercel as-is (`vercel.json` + `api/index.py`):
+### Deployment status
 
-1. vercel.com → **Add New → Project** → import `RonitM2k06/Auditra`. Leave Framework Preset as **Other** and Root Directory as `./`; `vercel.json` supplies the build settings.
-2. Optionally add `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` under Environment Variables.
-3. Deploy. The SPA is served statically from `frontend/dist`; every `/api/*` call goes to the FastAPI app as a Python serverless function.
-
-**Database:** the live demo uses a free Neon Postgres database connected through Vercel Storage, which sets `DATABASE_URL`. All function instances share it, so data persists. Without `DATABASE_URL`, Vercel falls back to a per-instance SQLite file in `/tmp` that resets on cold starts and is not shared between instances (fine for a quick preview only). Use **Settings → Reset demo workspace** to restore the Northstar demo.
-
-The `Dockerfile` still works for container hosts.
+The Round 3 build has **not yet been deployed**; the Round 2 build is live at https://auditra-bice.vercel.app/. Before deploying: confirm the OCR runtime imports on Vercel's Linux image (if `opencv` needs system libraries there, creative upload returns a clear 503 and nothing is saved — text features are unaffected), then verify `/api/health` reports the deployed commit and run the five-minute journey above.
 
 ---
 
-## Known limitations and security notes
+## Roadmap
 
-- **No authentication or authorisation.** The role switcher is for demonstration only; anyone with access can act as any role. Do not expose a deployment with real content without adding auth.
-- **CORS allows all origins** (`CORS_ORIGINS = ["*"]` in `backend/config.py`); restrict it for a real deployment.
-- The audit trail is an append-only *application* log in an ordinary database table, not a tamper-proof ledger.
-- Guideline import accepts UTF-8 text/Markdown only and creates **active** rules immediately — an imported document takes effect before anyone reviews it. No PDF/DOCX extraction.
-- No structured evaluation yet (detection rate, false positives, reviewer agreement) and no user interviews.
-- The rule engine is pattern-based: it does not understand paraphrases. The AI step can catch more, but its findings are marked as AI-assisted and may need human verification.
-- The backend still computes a weighted `risk_score`; it is shown only in audit details, not as a verdict in the UI.
-- Text content only; no images, video or rich text.
-- SQLite is single-node; use a server database for concurrent multi-user production use.
-
----
-
-## Round 3 roadmap
-
-1. **Multimodal brand governance** — check banners and social creatives for palette, logo usage, contrast and OCR'd on-image text against the same rulebook.
-2. **Evidence-grounded brand knowledge and claim verification** — retrieve from approved source documents so every claim is matched to a dated, attributable source.
-3. **Enterprise governance and publishing integrations** — SSO and real roles, multi-step approval policies, and connectors so only approved versions reach CMS and scheduling tools.
-
----
+1. SAML/OIDC single sign-on and SCIM provisioning.
+2. Real publishing connectors (CMS, social schedulers) behind the same approval guard.
+3. Hybrid retrieval (BM25 + embeddings) with the same conservative verdict layer, and negation-aware contradiction detection.
+4. Layout checks (logo placement, safe zones) and video frame sampling.
+5. A larger, independently labelled evaluation set.
 
 ## Repository layout
 
 ```
-backend/            FastAPI app, models, rule engine, AI service, seed data, routes/
-frontend/           React + TypeScript SPA (src/pages, src/components)
-tests/              pytest suite (isolated database via conftest.py)
-docs/screenshots/   screenshots of the running app (1440×900, demo workspace)
-generate_submission_pdf.py   builds AUDITRA_Round2_Submission.pdf
+backend/            FastAPI app, auth, pipeline, vision, evidence, policies, intelligence, routes/
+frontend/           React + TypeScript SPA
+tests/              pytest suites (isolated database)
+samples/            fictional creatives, logo, source documents (+ generator script)
+evaluation/         run_eval.py, RESULTS.md, results.json
+docs/screenshots/   screenshots of the running app
 ```
-
-Team **Quoding** — Arya Kashyap (Team Leader), Ronit Mongia, Moli Verma.

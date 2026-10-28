@@ -24,7 +24,9 @@ interface Props {
 export function CreativeView({ image, findings, selected, onSelect }: Props) {
   const [showOcr, setShowOcr] = useState(true);
   const [tab, setTab] = useState<'ocr' | 'visual'>('ocr');
-  const open = findings.filter((f) => !f.is_applied && !f.is_dismissed);
+  const RANK: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+  // Most severe last so it is drawn on top when regions share a text line.
+  const open = findings.filter((f) => !f.is_applied && !f.is_dismissed).sort((a, b) => (RANK[a.severity] ?? 0) - (RANK[b.severity] ?? 0));
   const { ocr, visual } = image;
   const stroke = Math.max(2, image.width / 300);
 
