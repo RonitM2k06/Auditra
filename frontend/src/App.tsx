@@ -22,12 +22,14 @@ import type { Brand, Me } from './types';
 import { api, type HealthStatus } from './api';
 
 const PAGES = ['overview', 'reviews', 'studio', 'creative', 'rulebook', 'sources', 'dna', 'campaigns', 'approvals', 'audit', 'insights', 'governance', 'settings', 'replay'];
-type Route = { page: string; id: string | null };
+type Route = { page: string; id: string | null; tab?: string | null };
 
 /** Hash routes (#/studio/<id>) so every screen survives a refresh and can be linked. */
 function parseHash(): Route {
   const [, page, id] = (window.location.hash.replace(/^#/, '') || '/overview').split('/');
-  return { page: PAGES.includes(page) ? page : 'overview', id: id || null };
+  const [cleanId, query] = (id || '').split('?');
+  const tab = new URLSearchParams(query || '').get('tab');
+  return { page: PAGES.includes(page) ? page : 'overview', id: cleanId || null, tab };
 }
 
 function Shell() {
@@ -66,7 +68,8 @@ function Shell() {
     const hash = `#/${page}${id ? `/${id}` : ''}`;
     if (replace) window.history.replaceState(null, '', hash);
     else if (window.location.hash !== hash) window.location.hash = hash;
-    setRoute({ page, id: id ?? null });
+    const [cleanId, query] = (id ?? '').split('?');
+    setRoute({ page, id: cleanId || null, tab: new URLSearchParams(query || '').get('tab') });
     setNavOpen(false);
   }, []);
 
@@ -204,7 +207,7 @@ function Shell() {
       case 'reviews':
         return <Reviews brand={brand} navigate={navigate} onChanged={refreshQueue} />;
       case 'studio':
-        return <Studio brand={brand} contentId={route.id} role={role} navigate={navigate} onChanged={refreshQueue} />;
+        return <Studio brand={brand} contentId={route.id} initialTab={route.tab ?? undefined} role={role} navigate={navigate} onChanged={refreshQueue} />;
       case 'creative':
         return <NewCreative brand={brand} canCreate={role !== 'reviewer'} navigate={navigate} />;
       case 'rulebook':

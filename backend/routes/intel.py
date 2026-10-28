@@ -13,6 +13,7 @@ from backend.database import get_db
 from backend.models import ApprovedClaim, AuditEvent, Brand, BrandRule, ContentItem, ContentVersion, Finding, ReviewDecision, ReviewRun
 from backend.models_r3 import ApprovalPolicy, BrandLogo, Campaign, CampaignAsset, ClaimCheck, Publication, RuleSnapshot, SourceDocument, User
 from backend.review_pipeline import brand_palette
+from backend.risk import campaign_risk as compute_campaign_risk
 
 router = APIRouter(tags=["Brand intelligence"])
 
@@ -190,6 +191,13 @@ def campaign_consistency(campaign_id: str, user: User = Depends(current_user), d
                 "notice": "Add at least two assets to compare them."}
     result = intel.campaign_consistency(assets, rules, claims)
     return {**info, **result, "asset_texts": {a["id"]: a["text"] for a in assets}}
+
+
+@router.get("/campaigns/{campaign_id}/risk")
+def campaign_risk(campaign_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Campaign Risk Radar, computed from current versions, rules and approvals on every request."""
+    c, _ = _campaign(db, user, campaign_id, "workspace.view")
+    return compute_campaign_risk(db, c)
 
 
 # --- Decision replay ---

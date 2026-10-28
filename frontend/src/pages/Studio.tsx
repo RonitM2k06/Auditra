@@ -49,11 +49,12 @@ interface StudioProps {
   brand: Brand;
   contentId: string | null;
   role: Role;
+  initialTab?: string;
   navigate: (page: string, id?: string | null, replace?: boolean) => void;
   onChanged: () => void;
 }
 
-export function Studio({ brand, contentId, role, navigate, onChanged }: StudioProps) {
+export function Studio({ brand, contentId, initialTab, role, navigate, onChanged }: StudioProps) {
   const toast = useToast();
   const confirm = useConfirm();
   const actor = ACTORS[role];
@@ -71,7 +72,8 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
   const [busy, setBusy] = useState<Busy>(null);
 
   const [mode, setMode] = useState<'edit' | 'marked'>('edit');
-  const [panel, setPanel] = useState<'findings' | 'claims' | 'approval' | 'history' | 'discussion'>('findings');
+  type Panel = 'findings' | 'claims' | 'approval' | 'history' | 'discussion';
+  const [panel, setPanel] = useState<Panel>((['findings', 'claims', 'approval', 'history', 'discussion'].includes(initialTab ?? '') ? initialTab : 'findings') as Panel);
   const [sevFilter, setSevFilter] = useState<string>('all');
   const [srcFilter, setSrcFilter] = useState<SourceFilter>('all');
   const [selected, setSelected] = useState<string | null>(null);

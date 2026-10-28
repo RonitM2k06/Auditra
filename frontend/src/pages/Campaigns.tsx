@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button, CONTENT_TYPES, cx, EmptyState, Field, inputCls, Modal, Page, PageHeader, PageSkeleton, StatusPill, useConfirm, useToast } from '../components/ui';
+import { RiskRadar } from '../components/RiskRadar';
 import type { Brand, Campaign, CampaignIssue, Consistency, ContentItem, FactGroup } from '../types';
 import { api } from '../api';
 
@@ -76,6 +77,7 @@ export function Campaigns({ brand, canManage, campaignId: routeId, navigate }: {
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [data, setData] = useState<Consistency | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
+  const [view, setView] = useState<'risk' | 'graph'>('risk');
   const [items, setItems] = useState<ContentItem[]>([]);
   const campaignId = routeId ?? campaigns?.[0]?.id ?? null;
   const [editor, setEditor] = useState<null | { id?: string; name: string; brief: string; content_ids: string[] }>(null);
@@ -164,7 +166,16 @@ export function Campaigns({ brand, canManage, campaignId: routeId, navigate }: {
                   )}
                 </div>
 
-                {data.notice ? (
+                <div className="inline-flex rounded-lg border border-line bg-white p-0.5 text-[13px]" role="tablist">
+                  {([['risk', 'Risk radar'], ['graph', 'Consistency graph']] as const).map(([k, l]) => (
+                    <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
+                      className={cx('rounded-md px-3 py-1.5 font-medium', view === k ? 'bg-pine-600 text-white' : 'text-ink-600 hover:text-ink-900')}>{l}</button>
+                  ))}
+                </div>
+
+                {view === 'risk' ? (
+                  <RiskRadar key={data.id} campaignId={data.id} navigate={navigate} />
+                ) : data.notice ? (
                   <EmptyState title="Not enough assets" body={data.notice} />
                 ) : (
                   <>

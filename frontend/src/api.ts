@@ -4,6 +4,7 @@ import {
   Me, Member, Policy, Publication, VisualIdentity, SourceDoc, SourceDocDetail, ClaimCheck,
   BrandDna, RuleChange, Simulation, SimulationItem, Campaign, Consistency, Replay, Comment
 } from './types';
+import type { RiskReport } from './components/RiskRadar';
 
 const API_BASE = '/api';
 
@@ -209,6 +210,7 @@ export const api = {
     request<Campaign>(`/campaigns/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCampaign: (id: string) => request<void>(`/campaigns/${id}`, { method: 'DELETE' }),
   getConsistency: (id: string) => request<Consistency>(`/campaigns/${id}/consistency`),
+  getCampaignRisk: (id: string) => request<RiskReport>(`/campaigns/${id}/risk`),
   getReplay: (contentId: string, from?: number, to?: number) =>
     request<Replay>(`/content/${contentId}/replay?${from ? `from_version=${from}&` : ''}${to ? `to_version=${to}` : ''}`),
   counterfactual: (contentId: string, version: number, changes: RuleChange[]) =>
