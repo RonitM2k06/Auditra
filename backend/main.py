@@ -111,4 +111,5 @@ if os.path.exists(frontend_dist):
         target_file = os.path.realpath(os.path.join(frontend_dist, full_path))
         if target_file.startswith(os.path.realpath(frontend_dist) + os.sep) and os.path.isfile(target_file):
             return FileResponse(target_file)
-        return FileResponse(os.path.join(frontend_dist, "index.html"))
+        # The shell must revalidate so a new deploy never runs against a stale bundle.
+        return FileResponse(os.path.join(frontend_dist, "index.html"), headers={"Cache-Control": "no-cache"})

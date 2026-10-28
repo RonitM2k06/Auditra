@@ -71,12 +71,16 @@ export function Approvals({ brand, role, navigate, onChanged }: ApprovalsProps) 
   const open = reviewCurrent ? review!.findings.filter((f) => !f.is_applied && !f.is_dismissed) : [];
   const serious = open.filter((f) => f.severity === 'critical' || f.severity === 'high').length;
 
-  const decide = async (note: string) => {
+  const decide = async (note: string, evidence = false) => {
     if (!selected || !decision) return;
     setBusy(true);
     try {
-      await api.recordDecision(selected.id, { decision, reviewer_name: actor.name, reviewer_role: actor.role, comments: note || undefined });
-      toast(`${selected.title}: ${decision === 'approved' ? 'approved' : decision === 'rejected' ? 'rejected' : 'changes requested'}.`, 'success');
+      const d = await api.recordDecision(selected.id, { decision, comments: note || undefined, version_number: selected.current_version_number, evidence_confirmed: evidence });
+      if (decision === 'approved' && d.status !== 'approved') {
+        toast(`Approval recorded. Still required: ${d.approval_status?.blocking.join(' | ')}`, 'info');
+      } else {
+        toast(`${selected.title}: ${decision === 'approved' ? 'approved' : decision === 'rejected' ? 'rejected' : 'changes requested'}.`, 'success');
+      }
       setDecision(null);
       await load();
       onChanged();
@@ -91,7 +95,7 @@ export function Approvals({ brand, role, navigate, onChanged }: ApprovalsProps) 
     e.preventDefault();
     if (!selected || !comment.trim()) return;
     try {
-      await api.addComment(selected.id, { text: comment.trim(), author_name: actor.name, author_role: actor.role });
+      await api.addComment(selected.id, { text: comment.trim(), author_name: '', author_role: '' });
       const fresh = await api.getContentItem(selected.id);
       setItems((list) => list?.map((i) => (i.id === fresh.id ? fresh : i)) ?? null);
       setComment('');
@@ -228,7 +232,7 @@ export function Approvals({ brand, role, navigate, onChanged }: ApprovalsProps) 
                   <span className="font-medium">Next step: </span>
                   {canDecide
                     ? 'Read the copy and findings, then approve, request changes, or reject. A note is required to send it back or reject it.'
-                    : `You're acting as ${actor.name}, a creator, so you can comment but not decide. Switch to the reviewer under "Acting as" in the sidebar to record a decision.`}
+                    : 'You are signed in as a content creator, so you can comment but not decide. The server enforces this; sign in as a reviewer to record a decision.'}
                 </p>
               </div>
 
@@ -299,6 +303,8 @@ export function Approvals({ brand, role, navigate, onChanged }: ApprovalsProps) 
 
       <DecisionModal
         decision={decision}
+        version={selected?.current_version_number}
+        evidencePrompt={(selected?.claim_checks ?? []).some((c) => c.status !== 'supported')}
         busy={busy}
         onClose={() => setDecision(null)}
         onSubmit={decide}

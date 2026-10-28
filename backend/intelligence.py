@@ -328,7 +328,7 @@ def campaign_consistency(assets: List[Dict[str, Any]], rules: Sequence[Any], cla
             continue
         values = {str(m["compare"]) for m in c["members"]}
         shared = set.intersection(*[m["context"] for m in c["members"]]) if c["members"] else set()
-        label_terms = sorted(shared or set.union(*[m["context"] for m in c["members"]]))[:4]
+        label_terms = sorted(shared)[:3]
         if len(values) == 1:
             status = "consistent"
         elif c["min_similarity"] >= 0.5:
@@ -336,7 +336,7 @@ def campaign_consistency(assets: List[Dict[str, Any]], rules: Sequence[Any], cla
         else:
             status = "uncertain"
         groups.append({
-            "id": f"fact-{i + 1}", "type": c["type"], "label": f"{c['type'].capitalize()}: " + (" ".join(label_terms) or "unlabelled"),
+            "id": f"fact-{i + 1}", "type": c["type"], "label": c["type"].capitalize() + (f" · {' '.join(label_terms)}" if label_terms else ""),
             "status": status, "context_similarity": round(c["min_similarity"], 2),
             "members": [{"asset_id": m["asset_id"], "display": m["display"], "value": m["value"], "passage": m["passage"],
                          "start": m["start"], "end": m["end"], "passage_start": m["passage_start"], "passage_end": m["passage_end"]}

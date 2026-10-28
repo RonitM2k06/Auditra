@@ -24,6 +24,7 @@ def _seed_sample_workspace(db: Session, force_reset: bool = False) -> Brand:
     existing = db.query(Brand).filter(Brand.slug == "northstar").first()
     if existing:
         if not force_reset:
+            _upgrade_round2_sample(db, existing)
             return existing
         # Delete existing sample brand to refresh cleanly
         db.delete(existing)
@@ -559,3 +560,26 @@ def _seed_round3(db: Session, brand: Brand, users: dict, now) -> None:
         db.add(AuditEvent(brand_id=brand.id, content_id=item.id, event_type="creative_uploaded", actor_name="Alex Rivers",
                           actor_role="Content Creator", description=f"Uploaded creative '{title}' ({len(ocr['lines'])} text lines extracted).",
                           event_metadata=json.dumps({"version": 1})))
+
+
+def _upgrade_round2_sample(db: Session, brand: Brand) -> None:
+    """A Northstar workspace seeded before Round 3 has no members. Add the demo personas and
+    Round 3 sample data in place, without touching the existing rows."""
+    if db.query(Membership).filter(Membership.brand_id == brand.id).first():
+        return
+    # Random IDs here: the deterministic seed counter would collide with the rows seeded in Round 2.
+    models._seed_counter = None
+    now = datetime.now(timezone.utc)
+    users = _seed_people(db, brand)
+    for item in db.query(ContentItem).filter(ContentItem.brand_id == brand.id).all():
+        if item.status == "approved" and not item.approved_version_id:
+            version = db.query(ContentVersion).filter(ContentVersion.content_id == item.id,
+                                                      ContentVersion.version_number == item.current_version_number).first()
+            item.approved_version_id = version.id if version else None
+            for d in db.query(ReviewDecision).filter(ReviewDecision.content_id == item.id).all():
+                if d.reviewer_name.startswith("Sarah Chen"):
+                    d.reviewer_user_id = users["reviewer"].id
+    _seed_round3(db, brand, users, now)
+    db.add(AuditEvent(brand_id=brand.id, event_type="workspace_upgraded", actor_name="System", actor_role="Migration",
+                      description="Added Round 3 demo personas, approval policies, evidence sources, a campaign and sample creatives."))
+    db.commit()

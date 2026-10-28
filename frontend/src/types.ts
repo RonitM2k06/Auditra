@@ -56,6 +56,7 @@ export interface Finding {
   is_applied: boolean;
   is_dismissed: boolean;
   finding_source: string;
+  region_json?: string | null;
   created_at: string;
 }
 
@@ -64,7 +65,7 @@ export interface ReviewRun {
   content_id: string;
   content_version_id: string;
   brand_id: string;
-  engine_type: 'deterministic' | 'hybrid_ai';
+  engine_type: 'deterministic' | 'hybrid_ai' | 'multimodal';
   ai_status: 'configured' | 'fallback_rule_based' | 'failed' | 'skipped';
   status: 'completed' | 'failed';
   risk_score: number;
@@ -107,6 +108,8 @@ export interface ReviewDecision {
   decision: 'approved' | 'changes_requested' | 'rejected';
   reviewer_name: string;
   reviewer_role: string;
+  reviewer_user_id?: string;
+  evidence_confirmed?: boolean;
   comments?: string;
   created_at: string;
 }
@@ -120,6 +123,8 @@ export interface ContentItem {
   current_version_number: number;
   created_by: string;
   reviewer_id?: string;
+  media_kind?: 'text' | 'image';
+  approved_version_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -130,6 +135,10 @@ export interface ContentItemDetail extends ContentItem {
   latest_review?: ReviewRun;
   comments: Comment[];
   decisions: ReviewDecision[];
+  claim_checks: ClaimCheck[];
+  approval_status?: ApprovalStatus;
+  publications: Publication[];
+  image?: CreativeImage | null;
 }
 
 export interface AuditEvent {
@@ -168,3 +177,6 @@ export interface GovernanceInsights {
   };
   rule_clarity_insights: Array<{ title: string; type: string; hypothesis: string; recommendation: string }>;
 }
+
+export * from './types_r3';
+import type { ClaimCheck, ApprovalStatus, Publication, CreativeImage } from './types_r3';

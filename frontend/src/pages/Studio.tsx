@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BookOpen, Check, ChevronDown, CornerDownLeft, FileText, Pencil, RotateCcw } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, ChevronDown, CornerDownLeft, FileText, History as HistoryIcon, ImageUp, Pencil, RotateCcw } from 'lucide-react';
 import {
   ACTORS,
   Button,
@@ -21,6 +21,8 @@ import {
   type Role,
 } from '../components/ui';
 import { DecisionModal, type Decision } from '../components/DecisionModal';
+import { CreativeView } from '../components/CreativeView';
+import { ApprovalPanel, ClaimsPanel } from '../components/GovernancePanels';
 import type { Brand, ContentItemDetail, ContentVersion, Finding } from '../types';
 import { api } from '../api';
 
@@ -33,6 +35,7 @@ type SourceFilter = 'all' | 'rule' | 'builtin' | 'ai';
 
 function sourceOf(f: Finding): Exclude<SourceFilter, 'all'> {
   if (f.finding_source === 'ai_assisted') return 'ai';
+  if (f.finding_source === 'visual' || f.finding_source === 'ocr' || f.finding_source === 'evidence') return 'builtin';
   return f.rule_id ? 'rule' : 'builtin';
 }
 
@@ -55,6 +58,9 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
   const confirm = useConfirm();
   const actor = ACTORS[role];
   const canDecide = role !== 'creator';
+  const canEdit = role !== 'reviewer';
+  const canPublish = role !== 'creator';
+  const reviseRef = useRef<HTMLInputElement>(null);
 
   const [item, setItem] = useState<ContentItemDetail | null>(null);
   const [title, setTitle] = useState('');
@@ -65,7 +71,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
   const [busy, setBusy] = useState<Busy>(null);
 
   const [mode, setMode] = useState<'edit' | 'marked'>('edit');
-  const [panel, setPanel] = useState<'findings' | 'history' | 'discussion'>('findings');
+  const [panel, setPanel] = useState<'findings' | 'claims' | 'approval' | 'history' | 'discussion'>('findings');
   const [sevFilter, setSevFilter] = useState<string>('all');
   const [srcFilter, setSrcFilter] = useState<SourceFilter>('all');
   const [selected, setSelected] = useState<string | null>(null);
@@ -124,7 +130,13 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
   const effectiveMode = stale || !review ? 'edit' : mode;
   const words = body.trim() ? body.trim().split(/\s+/).length : 0;
   const status = item?.status ?? 'draft';
-  const canSubmit = !!item && ['draft', 'changes_requested', 'rejected'].includes(status);
+  const canSubmit = !!item && canEdit && ['draft', 'changes_requested', 'rejected'].includes(status);
+  const isImage = item?.media_kind === 'image';
+  const claimChecks = item?.claim_checks ?? [];
+  const contradictedClaims = claimChecks.filter((c) => c.status === 'contradicted' || c.status === 'stale').length;
+  const reload = async () => {
+    if (item) hydrate(await api.getContentItem(item.id));
+  };
 
   /* ---------------- actions ---------------- */
   const persist = async (): Promise<ContentItemDetail | null> => {
@@ -141,7 +153,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
       return null;
     }
     if (!item) {
-      const created = await api.createContentItem(brand.id, { title: title.trim(), content_type: type, body, created_by: actor.name });
+      const created = await api.createContentItem(brand.id, { title: title.trim(), content_type: type, body });
       hydrate(created);
       navigate('studio', created.id, true);
       return created;
@@ -152,8 +164,6 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
       content_type: type,
       body: bodyDirty ? body : undefined,
       change_summary: 'Edited in the studio',
-      actor_name: actor.name,
-      actor_role: actor.role,
     });
     hydrate(updated);
     return updated;
@@ -176,12 +186,14 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
     if (busy) return;
     setBusy('review');
     try {
-      const d = await persist();
+      const d = isImage && item ? item : await persist();
       if (!d) return;
-      const run = await api.runReview(d.id, { actor_name: actor.name, actor_role: actor.role });
+      const run = await api.runReview(d.id, {});
       const fresh = await api.getContentItem(d.id);
       hydrate(fresh);
       setMode('marked');
+      const cc = fresh.claim_checks.filter((c) => c.status !== 'supported').length;
+      if (cc) setTimeout(() => toast(`${cc} claim${cc === 1 ? '' : 's'} not fully supported by approved sources. See the Claims tab.`, 'info'), 400);
       setPanel('findings');
       setSelected(null);
       const n = run.findings.length;
@@ -197,7 +209,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
   const apply = async (f: Finding, custom?: string, offset?: number) => {
     setBusy('apply');
     try {
-      const d = await api.applyCorrection(f.id, { custom_replacement: custom, occurrence_offset: offset, actor_name: actor.name, actor_role: actor.role });
+      const d = await api.applyCorrection(f.id, { custom_replacement: custom, occurrence_offset: offset });
       hydrate(d);
       setEditing(null);
       setChooser(null);
@@ -233,7 +245,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
 
   const dismiss = async (f: Finding) => {
     try {
-      await api.dismissFinding(f.id, actor.name);
+      await api.dismissFinding(f.id);
       if (item) hydrate(await api.getContentItem(item.id));
       toast('Finding dismissed. This is recorded in the audit trail.', 'info');
     } catch (e: any) {
@@ -265,7 +277,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
     }
     setBusy('submit');
     try {
-      hydrate(await api.submitForReview(item.id, actor.name, actor.role));
+      hydrate(await api.submitForReview(item.id));
       toast('Sent to the approval queue.', 'success');
       onChanged();
     } catch (e: any) {
@@ -275,12 +287,18 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
     }
   };
 
-  const decide = async (note: string) => {
+  const decide = async (note: string, evidence = false) => {
     if (!item || !decision) return;
     setBusy('decide');
     try {
-      hydrate(await api.recordDecision(item.id, { decision, reviewer_name: actor.name, reviewer_role: actor.role, comments: note || undefined }));
-      toast(decision === 'approved' ? 'Approved.' : decision === 'rejected' ? 'Rejected.' : 'Sent back to the author.', 'success');
+      const d = await api.recordDecision(item.id, { decision, comments: note || undefined, version_number: item.current_version_number, evidence_confirmed: evidence });
+      hydrate(d);
+      if (decision === 'approved' && d.status !== 'approved') {
+        toast('Approval recorded. More approvals are required by policy; see the Approval tab.', 'info');
+        setPanel('approval');
+      } else {
+        toast(decision === 'approved' ? `Approved v${d.current_version_number}.` : decision === 'rejected' ? 'Rejected.' : 'Sent back to the author.', 'success');
+      }
       setDecision(null);
       onChanged();
     } catch (e: any) {
@@ -300,7 +318,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
     if (!ok) return;
     try {
       hydrate(
-        await api.updateContentItem(item.id, { body: v.body, change_summary: `Restored text from v${v.version_number}`, actor_name: actor.name, actor_role: actor.role }),
+        await api.updateContentItem(item.id, { body: v.body, change_summary: `Restored text from v${v.version_number}` }),
       );
       toast(`Restored v${v.version_number} as a new version.`, 'success');
     } catch (e: any) {
@@ -313,13 +331,28 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
     if (!item || !comment.trim()) return;
     setBusy('comment');
     try {
-      await api.addComment(item.id, { text: comment.trim(), author_name: actor.name, author_role: actor.role });
+      await api.addComment(item.id, { text: comment.trim(), author_name: '', author_role: '' });
       hydrate(await api.getContentItem(item.id));
       setComment('');
     } catch (err: any) {
       toast(err.message, 'error');
     } finally {
       setBusy(null);
+    }
+  };
+
+  const reviseCreative = async (file: File) => {
+    if (!item) return;
+    setBusy('save');
+    try {
+      const d = await api.uploadRevisedCreative(item.id, file);
+      hydrate(d);
+      toast(`Uploaded as v${d.current_version_number}. Run the analysis on the new creative.`, 'success');
+    } catch (e: any) {
+      toast(e.message, 'error');
+    } finally {
+      setBusy(null);
+      if (reviseRef.current) reviseRef.current.value = '';
     }
   };
 
@@ -387,11 +420,26 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
               Discard
             </Button>
           )}
-          <Button size="sm" onClick={save} disabled={!!busy || (!!item && !dirty)} title="Ctrl+S">
-            {busy === 'save' ? 'Saving…' : 'Save'}
-          </Button>
-          <Button size="sm" variant={canSubmit || status === 'in_review' ? 'secondary' : 'primary'} onClick={runReview} disabled={!!busy} title="Ctrl+Enter">
-            {busy === 'review' ? 'Checking…' : review ? 'Re-run review' : 'Run review'}
+          {item && item.versions.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={() => navigate('replay', item.id)} title="Decision replay: compare versions, findings and history">
+              <HistoryIcon className="h-3.5 w-3.5" /> Replay
+            </Button>
+          )}
+          {isImage && canEdit && (
+            <>
+              <input ref={reviseRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => e.target.files?.[0] && reviseCreative(e.target.files[0])} />
+              <Button size="sm" onClick={() => reviseRef.current?.click()} disabled={!!busy}>
+                <ImageUp className="h-3.5 w-3.5" /> Upload revision
+              </Button>
+            </>
+          )}
+          {!isImage && canEdit && (
+            <Button size="sm" onClick={save} disabled={!!busy || (!!item && !dirty)} title="Ctrl+S">
+              {busy === 'save' ? 'Saving…' : 'Save'}
+            </Button>
+          )}
+          <Button size="sm" variant={canSubmit || status === 'in_review' ? 'secondary' : 'primary'} onClick={runReview} disabled={!!busy || (!item && !canEdit)} title="Ctrl+Enter">
+            {busy === 'review' ? (isImage ? 'Analysing creative…' : 'Checking…') : review ? 'Re-run analysis' : 'Run analysis'}
           </Button>
           {canSubmit && (
             <Button size="sm" variant="primary" onClick={submit} disabled={!!busy}>
@@ -418,7 +466,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Document */}
         <div className="flex min-h-[40vh] min-w-0 flex-1 flex-col bg-paper lg:min-h-0">
-          <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2 text-[12.5px] text-ink-500 sm:px-6">
+          <div className={cx('flex flex-wrap items-center gap-3 border-b border-line px-4 py-2 text-[12.5px] text-ink-500 sm:px-6', isImage && 'hidden')}>
             <div className="inline-flex rounded-md border border-line bg-white p-0.5" role="group" aria-label="View">
               {(['edit', 'marked'] as const).map((m) => (
                 <button
@@ -450,7 +498,7 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
             </span>
           </div>
 
-          {stale && (
+          {stale && !isImage && (
             <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-[12.5px] text-amber-900 sm:px-6">
               {bodyDirty
                 ? 'You have unsaved edits. Findings below refer to the last reviewed text.'
@@ -462,8 +510,14 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
           )}
 
           <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-[68ch] px-6 py-10">
-              {effectiveMode === 'marked' && review ? (
+            <div className={cx('mx-auto px-6 py-10', isImage ? 'max-w-[760px] py-6' : 'max-w-[68ch]')}>
+              {isImage && item?.image ? (
+                <CreativeView image={item.image} findings={stale ? [] : findings} selected={selected} onSelect={(id) => {
+                  setSelected(id);
+                  setPanel('findings');
+                  document.getElementById(`finding-${id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }} />
+              ) : effectiveMode === 'marked' && review ? (
                 <MarkedText text={body} findings={findings} selected={selected} onSelect={(id) => {
                   setSelected(id);
                   setPanel('findings');
@@ -486,8 +540,10 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                       </Button>
                     </div>
                   )}
+                  {!canEdit && <p className="mb-4 rounded-md bg-ink-100 px-3 py-2 text-[12.5px] text-ink-600">Reviewers can read and comment but not edit content. Ask the author for changes.</p>}
                   <textarea
                     ref={textareaRef}
+                    readOnly={!canEdit}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Paste or write the copy you want checked…"
@@ -509,6 +565,8 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
               onChange={setPanel}
               items={[
                 { id: 'findings', label: 'Findings', count: review ? openFindings.length : undefined },
+                { id: 'claims', label: 'Claims', count: review ? (contradictedClaims || claimChecks.length) : undefined },
+                { id: 'approval', label: 'Approval' },
                 { id: 'history', label: 'History', count: item?.versions.length },
                 { id: 'discussion', label: 'Discussion', count: item ? item.comments.length : undefined },
               ]}
@@ -595,6 +653,9 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                             onEdit={(text) => setEditing(text === null ? null : { id: f.id, text })}
                             onApply={(custom) => startApply(f, custom)}
                             onDismiss={() => dismiss(f)}
+                            canApply={canEdit && !isImage}
+                            canDismiss={canDecide}
+                            imageItem={isImage}
                           />
                         ))}
                       </ul>
@@ -602,6 +663,23 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
                   </>
                 )}
               </>
+            )}
+
+            {panel === 'claims' && (
+              review ? (
+                <ClaimsPanel checks={claimChecks} stale={stale} onOpenSource={(docId) => navigate('sources', docId)}
+                  onSelect={(c) => !isImage && textareaRef.current && effectiveMode === 'edit' && textareaRef.current.setSelectionRange(c.start_offset, c.end_offset)} />
+              ) : (
+                <p className="px-6 py-10 text-center text-[13px] text-ink-500">Run the analysis to check this content’s claims against approved sources.</p>
+              )
+            )}
+
+            {panel === 'approval' && (
+              item ? (
+                <ApprovalPanel item={item} canPublish={canPublish} toast={toast} onPublished={reload} />
+              ) : (
+                <p className="px-6 py-10 text-center text-[13px] text-ink-500">Save the piece to see its approval requirements.</p>
+              )
             )}
 
             {panel === 'history' && (
@@ -708,6 +786,8 @@ export function Studio({ brand, contentId, role, navigate, onChanged }: StudioPr
 
       <DecisionModal
         decision={decision}
+        version={item?.current_version_number}
+        evidencePrompt={claimChecks.some((c) => c.status !== 'supported')}
         busy={busy === 'decide'}
         onClose={() => setDecision(null)}
         onSubmit={decide}
@@ -813,11 +893,14 @@ interface FindingRowProps {
   onEdit: (text: string | null) => void;
   onApply: (custom?: string) => void;
   onDismiss: () => void;
+  canApply: boolean;
+  canDismiss: boolean;
+  imageItem: boolean;
 }
 
-function FindingRow({ f, selected, busy, editing, onSelect, onEdit, onApply, onDismiss }: FindingRowProps) {
+function FindingRow({ f, selected, busy, editing, onSelect, onEdit, onApply, onDismiss, canApply, canDismiss, imageItem }: FindingRowProps) {
   const src = sourceOf(f);
-  const zeroWidth = f.start_offset === f.end_offset;
+  const zeroWidth = f.start_offset === f.end_offset && f.category === 'required_phrase';
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
     fn();
@@ -872,7 +955,22 @@ function FindingRow({ f, selected, busy, editing, onSelect, onEdit, onApply, onD
             </div>
           </section>
 
-          {!f.is_applied && (
+          {f.confidence < 1 && src !== 'ai' && (
+            <p className="text-[12px] text-ink-500">Confidence {Math.round(f.confidence * 100)}% · {f.finding_source === 'visual' ? 'measured from pixels' : f.finding_source === 'ocr' || f.finding_source === 'ocr_rule' ? 'rule applied to OCR text' : f.finding_source === 'evidence' ? 'evidence check' : 'deterministic rule'}</p>
+          )}
+          {!f.is_applied && imageItem && f.suggested_correction && (
+            <section className="rounded-lg border border-pine-100 bg-pine-50 px-3 py-2.5">
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-pine-700">Suggested wording</h4>
+              <p className="mt-1 whitespace-pre-wrap text-[13.5px] font-medium leading-snug text-ink-900">{f.suggested_correction.trim()}</p>
+              <p className="mt-1 text-[12px] text-ink-500">Update the artwork and upload a revision; image text can’t be edited in place.</p>
+            </section>
+          )}
+          {!f.is_applied && !canApply && canDismiss && (
+            <div className="flex justify-end">
+              <Button size="sm" variant="ghost" className="text-ink-500" onClick={stop(onDismiss)}>Dismiss</Button>
+            </div>
+          )}
+          {!f.is_applied && canApply && (
             <div>
               {editing !== null ? (
                 <div className="space-y-2">
@@ -921,9 +1019,11 @@ function FindingRow({ f, selected, busy, editing, onSelect, onEdit, onApply, onD
                         <Pencil className="h-3 w-3" /> Rewrite passage
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" className="ml-auto text-ink-500" onClick={stop(onDismiss)}>
-                      Dismiss
-                    </Button>
+                    {canDismiss && (
+                      <Button size="sm" variant="ghost" className="ml-auto text-ink-500" onClick={stop(onDismiss)}>
+                        Dismiss
+                      </Button>
+                    )}
                   </div>
                 </>
               )}

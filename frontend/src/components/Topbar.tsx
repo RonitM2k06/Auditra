@@ -12,6 +12,12 @@ const PAGE_LABEL: Record<string, string> = {
   audit: 'Audit trail',
   insights: 'Governance insights',
   settings: 'Settings',
+  creative: 'Review a creative',
+  sources: 'Evidence library',
+  dna: 'Brand DNA',
+  campaigns: 'Campaign consistency',
+  governance: 'Policies & members',
+  replay: 'Decision replay',
 };
 
 export function Topbar({ brand, page, onMenu, health }: { brand: Brand | null; page: string; onMenu: () => void; health: HealthStatus | null }) {
