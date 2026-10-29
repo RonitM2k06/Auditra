@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { BarChart2, BookOpen, Check, ChevronsUpDown, FilePlus2, FileText, History, Inbox, LayoutGrid, Plus, Settings, X } from 'lucide-react';
+import { BarChart2, BookOpen, Check, ChevronsUpDown, Dna, FilePlus2, FileSearch, FileText, History, ImageUp, Inbox, LayoutGrid, LogOut, Network, Plus, Settings, ShieldCheck, Grid3x3, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { ACTORS, cx, Logo, type Role } from './ui';
-import type { Brand } from '../types';
+import { cx, Logo, ROLE_LABEL, type Role } from './ui';
+import type { Brand, Me } from '../types';
 
 type NavEntry = { id: string; label: string; icon: LucideIcon; showCount?: boolean };
 
@@ -12,19 +12,30 @@ const NAV: Array<{ group: string; items: NavEntry[] }> = [
     items: [
       { id: 'overview', label: 'Overview', icon: LayoutGrid },
       { id: 'reviews', label: 'Content reviews', icon: FileText },
-      { id: 'studio', label: 'New review', icon: FilePlus2 },
+      { id: 'studio', label: 'New copy review', icon: FilePlus2 },
+      { id: 'creative', label: 'Review a creative', icon: ImageUp },
+      { id: 'campaigns', label: 'Campaigns', icon: Network },
     ],
   },
   {
     group: 'Brand governance',
     items: [
-      { id: 'rulebook', label: 'Brand rulebook', icon: BookOpen },
       { id: 'approvals', label: 'Approval queue', icon: Inbox, showCount: true },
+      { id: 'rulebook', label: 'Brand rulebook', icon: BookOpen },
+      { id: 'sources', label: 'Evidence library', icon: FileSearch },
+      { id: 'dna', label: 'Brand DNA', icon: Dna },
+      { id: 'coverage', label: 'Coverage map', icon: Grid3x3 },
       { id: 'audit', label: 'Audit trail', icon: History },
     ],
   },
   { group: 'Insights', items: [{ id: 'insights', label: 'Governance insights', icon: BarChart2 }] },
-  { group: 'Configuration', items: [{ id: 'settings', label: 'Settings', icon: Settings }] },
+  {
+    group: 'Configuration',
+    items: [
+      { id: 'governance', label: 'Policies & members', icon: ShieldCheck },
+      { id: 'settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -35,18 +46,19 @@ interface SidebarProps {
   onSelectBrand: (b: Brand) => void;
   onNewBrand: () => void;
   role: Role;
-  setRole: (r: Role) => void;
+  me: Me;
+  onSignOut: () => void;
   queueCount: number;
   open: boolean;
   onClose: () => void;
   hasId: boolean;
 }
 
-export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBrand, role, setRole, queueCount, open, onClose, hasId }: SidebarProps) {
+export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBrand, role, me, onSignOut, queueCount, open, onClose, hasId }: SidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   // An existing review highlights "Content reviews"; a blank studio highlights "New review".
-  const active = page === 'studio' ? (hasId ? 'reviews' : 'studio') : page;
+  const active = page === 'studio' || page === 'replay' ? (hasId ? 'reviews' : 'studio') : page;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -161,22 +173,19 @@ export function Sidebar({ page, navigate, brands, brand, onSelectBrand, onNewBra
         </nav>
 
         <div className="border-t border-white/10 p-3">
-          <label htmlFor="role-select" className="block text-[10.5px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-            Acting as
-          </label>
-          <select
-            id="role-select"
-            value={role}
-            onChange={(e) => setRole(e.target.value as Role)}
-            className="mt-1.5 w-full rounded-lg border border-white/10 bg-navy-800 px-2 py-1.5 text-[13px] text-white focus:border-pine-500 focus:outline-none"
-          >
-            {(Object.keys(ACTORS) as Role[]).map((r) => (
-              <option key={r} value={r}>
-                {ACTORS[r].name} · {ACTORS[r].role}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1.5 text-[11.5px] leading-snug text-slate-500">Demo roles for evaluation. There is no login, so this is not access control.</p>
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-pine-600 text-[12px] font-semibold text-white">
+              {me.display_name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium text-white">{me.display_name}</span>
+              <span className="block truncate text-[11.5px] text-slate-400">{ROLE_LABEL[role]}{me.is_demo ? ' · demo' : ''}</span>
+            </span>
+            <button onClick={onSignOut} className="rounded p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Sign out" title="Sign out">
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-slate-500">Permissions for this role are enforced by the server on every request.</p>
         </div>
       </aside>
     </>

@@ -13,11 +13,16 @@ export const cx = (...classes: Array<string | false | null | undefined>) => clas
 
 export type Role = 'creator' | 'reviewer' | 'admin';
 
+/** The signed-in person, as shown in the UI. The server derives the real actor from the session. */
 export const ACTORS: Record<Role, { name: string; role: string }> = {
-  creator: { name: 'Alex Rivers', role: 'Content Creator' },
-  reviewer: { name: 'Sarah Chen', role: 'Brand Compliance Lead' },
-  admin: { name: 'Workspace Admin', role: 'Administrator' },
+  creator: { name: 'You', role: 'Content Creator' },
+  reviewer: { name: 'You', role: 'Brand Compliance Lead' },
+  admin: { name: 'You', role: 'Workspace Admin' },
 };
+
+export function setActorName(name: string) {
+  (Object.keys(ACTORS) as Role[]).forEach((r) => (ACTORS[r].name = name));
+}
 
 export const STATUS_META: Record<string, { label: string; dot: string; text: string }> = {
   draft: { label: 'Draft', dot: 'bg-ink-400', text: 'text-ink-600' },
@@ -45,7 +50,34 @@ export const CATEGORY_LABEL: Record<string, string> = {
   approved_claim: 'Approved claim',
   tone_voice: 'Tone & voice',
   formatting_style: 'Style',
+  visual_contrast: 'Text contrast',
+  visual_palette: 'Off-palette colour',
+  visual_logo: 'Logo similarity',
+  ocr_uncertain: 'Low OCR confidence',
+  claim_contradicted: 'Contradicted claim',
+  claim_stale: 'Stale evidence',
 };
+
+/** Verdicts from evidence verification. Wording stays conservative: "no evidence" is not "false". */
+export const CLAIM_META: Record<string, { label: string; text: string; bg: string; dot: string; hint: string }> = {
+  supported: { label: 'Supported', text: 'text-pine-700', bg: 'bg-pine-50 border-pine-200', dot: 'bg-pine-500', hint: 'A stored passage contains the same terms and figures.' },
+  contradicted: { label: 'Contradicted', text: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-600', hint: 'A current source states a different figure for the same thing.' },
+  stale: { label: 'Stale evidence', text: 'text-amber-800', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500', hint: 'Supported only by a source past its expiry or review date.' },
+  needs_review: { label: 'Needs review', text: 'text-orange-800', bg: 'bg-orange-50 border-orange-200', dot: 'bg-orange-400', hint: 'Related evidence exists but does not clearly establish the claim.' },
+  unsupported: { label: 'No evidence found', text: 'text-ink-600', bg: 'bg-ink-50 border-line', dot: 'bg-ink-400', hint: 'No approved source establishes this. That is not proof it is false.' },
+};
+
+export const ROLE_LABEL: Record<string, string> = { creator: 'Content Creator', reviewer: 'Brand Compliance Lead', admin: 'Workspace Admin' };
+
+export function ClaimBadge({ status }: { status: string }) {
+  const m = CLAIM_META[status] ?? CLAIM_META.unsupported;
+  return (
+    <span className={cx('inline-flex items-center gap-1.5 whitespace-nowrap rounded border px-1.5 py-px text-[11px] font-semibold', m.bg, m.text)}>
+      <span className={cx('h-1.5 w-1.5 rounded-full', m.dot)} />
+      {m.label}
+    </span>
+  );
+}
 
 export const CONTENT_TYPES: Record<string, string> = {
   social_post: 'Social post',

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 class Settings(BaseModel):
     PROJECT_NAME: str = "AUDITRA"
-    VERSION: str = "2.0.0"
+    VERSION: str = "3.0.0"
     API_V1_STR: str = "/api"
     # Vercel's filesystem is read-only except /tmp, so the demo SQLite file lives in the temp dir.
     DATABASE_URL: str = os.getenv(

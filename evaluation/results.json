@@ -1,0 +1,302 @@
+{
+  "date": "2026-10-29",
+  "creatives": {
+    "summary": {
+      "true_positive_labels": 8,
+      "false_positive_labels": 0,
+      "missed_labels": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "rows": [
+      {
+        "creative": "01-compliant-atlas.png",
+        "ocr_lines": 6,
+        "mean_ocr_confidence": 0.986,
+        "expected": [],
+        "actual": [],
+        "false_positives": [],
+        "missed": [],
+        "logo_expected": "match",
+        "logo_actual": "match",
+        "logo_score": 0.894
+      },
+      {
+        "creative": "02-violations-guarantee.png",
+        "ocr_lines": 3,
+        "mean_ocr_confidence": 0.996,
+        "expected": [
+          "prohibited_term",
+          "required_phrase",
+          "visual_contrast",
+          "visual_logo",
+          "visual_palette"
+        ],
+        "actual": [
+          "prohibited_term",
+          "required_phrase",
+          "visual_contrast",
+          "visual_logo",
+          "visual_palette"
+        ],
+        "false_positives": [],
+        "missed": [],
+        "logo_expected": "not_found",
+        "logo_actual": "not_found",
+        "logo_score": 0.372
+      },
+      {
+        "creative": "03-terminology-uptime.png",
+        "ocr_lines": 4,
+        "mean_ocr_confidence": 0.983,
+        "expected": [
+          "preferred_term",
+          "required_phrase"
+        ],
+        "actual": [
+          "preferred_term",
+          "required_phrase"
+        ],
+        "false_positives": [],
+        "missed": [],
+        "logo_expected": "match",
+        "logo_actual": "match",
+        "logo_score": 0.894
+      },
+      {
+        "creative": "04-low-contrast.png",
+        "ocr_lines": 5,
+        "mean_ocr_confidence": 0.991,
+        "expected": [
+          "visual_contrast"
+        ],
+        "actual": [
+          "visual_contrast"
+        ],
+        "false_positives": [],
+        "missed": [],
+        "logo_expected": "match",
+        "logo_actual": "match",
+        "logo_score": 0.894
+      }
+    ]
+  },
+  "claims": {
+    "summary": {
+      "claims": 21,
+      "correct": 19,
+      "accuracy": 0.905,
+      "falsely_marked_supported": 0,
+      "retrieval_cited_expected_document": "15/15",
+      "confusion": {
+        "supported": {
+          "supported": 7
+        },
+        "contradicted": {
+          "contradicted": 6
+        },
+        "stale": {
+          "stale": 2
+        },
+        "unsupported": {
+          "needs_review": 2,
+          "unsupported": 2
+        },
+        "needs_review": {
+          "needs_review": 2
+        }
+      }
+    },
+    "rows": [
+      {
+        "claim": "Northstar maintains a 99.995% uptime SLA backed by multi-region automated failover.",
+        "expected": "supported",
+        "actual": "supported",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 1.0,
+        "rationale": "The passage contains 100% of the claim's terms and the same figures (99.995%). A reviewer should still confirm the wording means the same thing."
+      },
+      {
+        "claim": "Northstar Cloud is available in 14 regions.",
+        "expected": "supported",
+        "actual": "supported",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 1.0,
+        "rationale": "The passage contains 100% of the claim's terms and the same figures (14 regions). A reviewer should still confirm the wording means the same thing."
+      },
+      {
+        "claim": "Northstar accelerates enterprise workload throughput by up to 34% within 90 days.",
+        "expected": "supported",
+        "actual": "supported",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 1.0,
+        "rationale": "The passage contains 100% of the claim's terms and the same figures (34%, 90 days). A reviewer should still confirm the wording means the same thing."
+      },
+      {
+        "claim": "Atlas Pro costs $49 per member per month.",
+        "expected": "supported",
+        "actual": "supported",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 1.0,
+        "rationale": "The passage contains 100% of the claim's terms and the same figures ($49). A reviewer should still confirm the wording means the same thing. An expired source (Northstar Pricing Sheet 2025, expired 2025-12-31) gives a different figure and was not used."
+      },
+      {
+        "claim": "Atlas Pro launches on November 12, 2026.",
+        "expected": "supported",
+        "actual": "supported",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 1.0,
+        "rationale": "The passage contains 100% of the claim's terms and the same figures (November 12, 2026). A reviewer should still confirm the wording means the same thing."
+      },
+      {
+        "claim": "Every new Atlas Pro workspace includes a 14-day free trial.",
+        "expected": "supported",
+        "actual": "supported",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 1.0,
+        "rationale": "The passage contains 100% of the claim's terms and the same figures (14-day). A reviewer should still confirm the wording means the same thing. An expired source (Northstar Pricing Sheet 2025, expired 2025-12-31) gives a different figure and was not used."
+      },
+      {
+        "claim": "Northstar is SOC 2 Type II certified.",
+        "expected": "supported",
+        "actual": "supported",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 1.0,
+        "rationale": "The passage contains 100% of the claim's terms and the same figures (2). A reviewer should still confirm the wording means the same thing."
+      },
+      {
+        "claim": "Northstar maintains a 99.9% uptime SLA.",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.8,
+        "rationale": "The source states 99.995% where the claim says 99.9%, in a passage about the same topic (80% of the claim's terms appear)."
+      },
+      {
+        "claim": "Northstar Cloud is available in 20 regions.",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.8,
+        "rationale": "The source states 14 regions where the claim says 20 regions, in a passage about the same topic (80% of the claim's terms appear)."
+      },
+      {
+        "claim": "Atlas Pro costs $59 per member per month.",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.83,
+        "rationale": "The source states $49 where the claim says $59, in a passage about the same topic (83% of the claim's terms appear). The claimed figure only appears in Northstar Pricing Sheet 2025, which expired on 2025-12-31."
+      },
+      {
+        "claim": "Atlas Pro launches on November 14, 2026.",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.83,
+        "rationale": "The source states November 12, 2026 where the claim says November 14, 2026, in a passage about the same topic (83% of the claim's terms appear)."
+      },
+      {
+        "claim": "Every new Atlas Pro workspace includes a 30-day free trial.",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.88,
+        "rationale": "The source states 14-day where the claim says 30-day, in a passage about the same topic (87% of the claim's terms appear). The claimed figure only appears in Northstar Pricing Sheet 2025, which expired on 2025-12-31."
+      },
+      {
+        "claim": "Northstar accelerates workload throughput by up to 50% within 90 days.",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.86,
+        "rationale": "The source states 34% where the claim says 50%, in a passage about the same topic (85% of the claim's terms appear)."
+      },
+      {
+        "claim": "Northstar is ISO 27001 certified for its managed control plane.",
+        "expected": "stale",
+        "actual": "stale",
+        "correct": true,
+        "cited_document": "Security & Compliance Overview",
+        "coverage": 1.0,
+        "rationale": "The passage supports the claim, but the source's review date (2026-03-01) has passed."
+      },
+      {
+        "claim": "Customer data is encrypted at rest with AES-256.",
+        "expected": "stale",
+        "actual": "stale",
+        "correct": true,
+        "cited_document": "Security & Compliance Overview",
+        "coverage": 1.0,
+        "rationale": "The passage supports the claim, but the source's review date (2026-03-01) has passed."
+      },
+      {
+        "claim": "Northstar is the fastest cloud platform in the world.",
+        "expected": "unsupported",
+        "actual": "needs_review",
+        "correct": false,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.4,
+        "rationale": "Related evidence exists but does not clearly establish the claim: absolute wording (fastest) is not in the source."
+      },
+      {
+        "claim": "Northstar cuts infrastructure costs by 40% for every customer.",
+        "expected": "unsupported",
+        "actual": "unsupported",
+        "correct": true,
+        "cited_document": "Security & Compliance Overview",
+        "coverage": 0.17,
+        "rationale": "The closest approved passage shares few terms with this claim, so it does not establish it. No evidence found is not evidence the claim is false."
+      },
+      {
+        "claim": "Northstar is trusted by 10,000 banks worldwide.",
+        "expected": "unsupported",
+        "actual": "unsupported",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.17,
+        "rationale": "The closest approved passage shares few terms with this claim, so it does not establish it. No evidence found is not evidence the claim is false."
+      },
+      {
+        "claim": "Northstar won the 2026 Cloud Innovation Award.",
+        "expected": "unsupported",
+        "actual": "needs_review",
+        "correct": false,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.33,
+        "rationale": "Related evidence exists but does not clearly establish the claim: only 33% of the claim's terms appear."
+      },
+      {
+        "claim": "Northstar is HIPAA certified for regulated workloads.",
+        "expected": "needs_review",
+        "actual": "needs_review",
+        "correct": true,
+        "cited_document": "Security & Compliance Overview",
+        "coverage": 1.0,
+        "rationale": "Related evidence exists but does not clearly establish the claim: the passage and claim differ in negation (possible contradiction)."
+      },
+      {
+        "claim": "Northstar guarantees 99.995% uptime for every workload.",
+        "expected": "needs_review",
+        "actual": "needs_review",
+        "correct": true,
+        "cited_document": "Northstar Product Fact Sheet 2026",
+        "coverage": 0.6,
+        "rationale": "Related evidence exists but does not clearly establish the claim: absolute wording (guarantees) is not in the source."
+      }
+    ]
+  }
+}

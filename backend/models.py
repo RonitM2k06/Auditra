@@ -32,6 +32,7 @@ class Brand(Base):
     is_sample = Column(Boolean, default=False, nullable=False)
     primary_color = Column(String(20), default="#0F9D91")
     secondary_color = Column(String(20), default="#101B2D")
+    palette_json = Column(Text, nullable=True)  # extra approved palette colours (JSON list of hex)
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
@@ -88,6 +89,9 @@ class ContentItem(Base):
     current_version_number = Column(Integer, default=1, nullable=False)
     created_by = Column(String(100), default="Creator", nullable=False)
     reviewer_id = Column(String(100), nullable=True)
+    created_by_user_id = Column(String(36), nullable=True)
+    media_kind = Column(String(10), nullable=False, default="text")  # text, image
+    approved_version_id = Column(String(36), nullable=True)  # version whose approval policy was satisfied
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
@@ -153,7 +157,8 @@ class Finding(Base):
     requires_human_review = Column(Boolean, default=False, nullable=False)
     is_applied = Column(Boolean, default=False, nullable=False)
     is_dismissed = Column(Boolean, default=False, nullable=False)
-    finding_source = Column(String(30), default="deterministic", nullable=False)  # deterministic, ai_assisted
+    finding_source = Column(String(30), default="deterministic", nullable=False)  # deterministic, ai_assisted, ocr, visual
+    region_json = Column(Text, nullable=True)  # image region(s) for creative findings
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
 
     review_run = relationship("ReviewRun", back_populates="findings")
@@ -170,6 +175,8 @@ class ReviewDecision(Base):
     decision = Column(String(30), nullable=False)  # approved, changes_requested, rejected
     reviewer_name = Column(String(100), nullable=False)
     reviewer_role = Column(String(100), nullable=False, default="Brand Reviewer")
+    reviewer_user_id = Column(String(36), nullable=True)
+    evidence_confirmed = Column(Boolean, nullable=False, default=False)
     comments = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
 

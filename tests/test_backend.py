@@ -1,12 +1,13 @@
 import pytest
 from fastapi.testclient import TestClient
+from tests.conftest import make_client
 from backend.main import app
 from backend.models import BrandRule, ApprovedClaim
 from backend.rule_engine import ComplianceRuleEngine
 
 @pytest.fixture(scope="session")
 def client():
-    with TestClient(app) as c:
+    with make_client("admin") as c:
         yield c
 
 def test_health_endpoint(client):
@@ -169,17 +170,22 @@ def test_content_lifecycle_and_corrections(client):
         "reviewer_name": "Sarah",
         "reviewer_role": "Reviewer"
     })
-    assert bad_decision_resp.status_code == 400
+    assert bad_decision_resp.status_code == 422
 
-    # 7. Valid approval decision
-    approve_resp = client.post(f"/api/content/{content_id}/decision", json={
-        "decision": "approved",
+    # 7. Valid approval decision, by a different person (the reviewer), naming the version reviewed
+    reviewer = make_client("reviewer")
+    version = client.get(f"/api/content/{content_id}").json()["current_version_number"]
+    client.post(f"/api/content/{content_id}/review", json={})
+    approve_resp = reviewer.post(f"/api/content/{content_id}/decision", json={
+        "decision": "approved", "version_number": version, "evidence_confirmed": True,
         "reviewer_name": "Sarah Chen",
         "reviewer_role": "Senior Reviewer",
         "comments": "Looks compliant and well-structured."
     })
     assert approve_resp.status_code == 200
-    assert approve_resp.json()["status"] == "approved"
+    # Approved outright, or held in review by a triggered approval policy that names what is missing.
+    _st = approve_resp.json()
+    assert _st["status"] == "approved" or (_st["status"] == "in_review" and _st["approval_status"]["blocking"])
 
     # 8. Check audit trail
     audit_resp = client.get(f"/api/brands/{brand_id}/audit?content_id={content_id}")

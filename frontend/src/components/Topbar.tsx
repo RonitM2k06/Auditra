@@ -1,4 +1,4 @@
-import { Menu } from 'lucide-react';
+import { Compass, Menu } from 'lucide-react';
 import { cx } from './ui';
 import type { Brand } from '../types';
 import type { HealthStatus } from '../api';
@@ -12,9 +12,16 @@ const PAGE_LABEL: Record<string, string> = {
   audit: 'Audit trail',
   insights: 'Governance insights',
   settings: 'Settings',
+  creative: 'Review a creative',
+  sources: 'Evidence library',
+  dna: 'Brand DNA',
+  campaigns: 'Campaign consistency',
+  governance: 'Policies & members',
+  replay: 'Decision replay',
+  coverage: 'Coverage map',
 };
 
-export function Topbar({ brand, page, onMenu, health }: { brand: Brand | null; page: string; onMenu: () => void; health: HealthStatus | null }) {
+export function Topbar({ brand, page, onMenu, health, onTour }: { brand: Brand | null; page: string; onMenu: () => void; health: HealthStatus | null; onTour?: () => void }) {
   const aiOn = health?.ai_engine === 'configured';
   return (
     <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-white px-4 sm:px-6">
@@ -27,6 +34,11 @@ export function Topbar({ brand, page, onMenu, health }: { brand: Brand | null; p
         <span className="truncate font-medium text-ink-900">{PAGE_LABEL[page] ?? ''}</span>
       </nav>
       <div className="ml-auto flex items-center gap-4 text-[12px] text-ink-500">
+        {brand?.is_sample && onTour && (
+          <button onClick={onTour} className="flex items-center gap-1.5 rounded-md bg-pine-600 px-2.5 py-1 font-medium text-white hover:bg-pine-700">
+            <Compass className="h-3.5 w-3.5" /> Take the tour
+          </button>
+        )}
         {brand?.is_sample && <span className="hidden rounded border border-dashed border-ink-300 px-1.5 py-0.5 sm:inline">Demo data</span>}
         {health && (
           <span
