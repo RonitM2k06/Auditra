@@ -1,18 +1,21 @@
 import hashlib
 import json
 import os
-from typing import Optional
+from datetime import date
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from backend import evidence
+from backend import evidence, freshness, review_pipeline
+from backend import policies as policy_engine
+from backend.risk import campaign_risk
 from backend.auth import authorize, current_user
 from backend.database import get_db
-from backend.models import AuditEvent
-from backend.models_r3 import SourceDocument, SourcePassage, User
+from backend.models import AuditEvent, ContentItem, ContentVersion
+from backend.models_r3 import Campaign, ClaimCheck, SourceDocument, SourcePassage, User
 from backend.review_pipeline import build_index, verify_text
 
 router = APIRouter(prefix="/brands/{brand_id}", tags=["Evidence sources"])
@@ -177,3 +180,78 @@ def verify_claims(brand_id: str, payload: TextIn, user: User = Depends(current_u
     if not payload.text.strip():
         raise HTTPException(status_code=422, detail="Enter some text to check.")
     return verify_text(payload.text, build_index(db, brand_id))
+
+
+# --- Source-expiry impact ---
+
+@router.get("/source-impact")
+def source_impact_view(brand_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Every source with its freshness and the stored claims, assets and campaigns that depend on it."""
+    authorize(db, user, brand_id, "workspace.view")
+    docs = db.query(SourceDocument).filter(SourceDocument.brand_id == brand_id).order_by(SourceDocument.name).all()
+    impacts = [freshness.source_impact(db, d) for d in docs]
+    order = {"expired": 0, "retired": 1, "review_overdue": 2, "undated": 3, "current": 4}
+    impacts.sort(key=lambda i: (order.get(i["freshness"]["status"], 9), i["name"]))
+    return {"today": date.today().isoformat(), "sources": impacts, "missing_sources": freshness.orphaned_citations(db, brand_id),
+            "method": "Freshness uses only the expiry, review and approval fields stored on each source. A dependency is confirmed "
+                      "only when the latest review of an asset's current version cites a passage from the source."}
+
+
+class ReverifyIn(BaseModel):
+    content_ids: Optional[List[str]] = Field(None, max_length=200)  # retry a subset; default = all confirmed dependants
+
+
+@router.post("/sources/{doc_id}/reverify")
+async def reverify_affected(brand_id: str, doc_id: str, payload: Optional[ReverifyIn] = None,
+                            user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Re-runs the normal analysis (rules + claim verification) on each asset whose current claims cite this source.
+    Each asset is committed separately, so one failure does not undo the others. This never approves, publishes,
+    changes a claim verdict by hand or touches the rulebook."""
+    actor = authorize(db, user, brand_id, "evidence.reverify")
+    d = db.query(SourceDocument).filter(SourceDocument.id == doc_id, SourceDocument.brand_id == brand_id).first()
+    if not d:
+        raise HTTPException(status_code=404, detail="Source not found")
+    impact = freshness.source_impact(db, d)
+    targets = [a["content_id"] for a in impact["assets"]]
+    if payload and payload.content_ids is not None:
+        unknown = set(payload.content_ids) - set(targets)
+        if unknown:
+            raise HTTPException(status_code=422, detail="Some selected assets do not currently depend on this source. Reload the impact view.")
+        targets = [t for t in targets if t in set(payload.content_ids)]
+    if not targets:
+        return {"source_id": d.id, "results": [], "note": "No asset currently depends on this source, so there is nothing to re-verify."}
+
+    def statuses(cid):
+        return sorted(c["status"] for c in impact["claims"] if c["content_id"] == cid and c["relation"] == "confirmed")
+
+    results = []
+    for cid in targets:
+        item = db.query(ContentItem).filter(ContentItem.id == cid, ContentItem.brand_id == brand_id).first()
+        before = statuses(cid)
+        try:
+            version = db.query(ContentVersion).filter(ContentVersion.content_id == cid,
+                                                      ContentVersion.version_number == item.current_version_number).first()
+            run = await review_pipeline.perform_review(db, item, version, actor)
+            after = [c.status for c in db.query(ClaimCheck).filter(ClaimCheck.review_run_id == run.id, ClaimCheck.source_document_id == d.id).all()]
+            approval = policy_engine.evaluate(db, item)
+            results.append({"content_id": cid, "title": item.title, "outcome": "ok", "version_number": version.version_number,
+                            "review_run_id": run.id, "before": before, "after": sorted(after),
+                            "still_cites_source": bool(after), "status": item.status,
+                            "approval_satisfied": approval["satisfied"]})
+        except Exception as exc:  # one asset failing must not stop the rest
+            db.rollback()
+            results.append({"content_id": cid, "title": item.title if item else cid, "outcome": "failed", "before": before,
+                            "error": str(exc)[:300] or exc.__class__.__name__})
+    camp_ids = {c["id"] for c in impact["campaigns"]}
+    campaigns = []
+    for camp in db.query(Campaign).filter(Campaign.id.in_(camp_ids)).all() if camp_ids else []:
+        r = campaign_risk(db, camp)
+        campaigns.append({"id": camp.id, "name": camp.name, "level": r["level"], "complete": r["complete"]})
+    ok = sum(1 for r in results if r["outcome"] == "ok")
+    db.add(AuditEvent(brand_id=brand_id, event_type="sources_reverified", actor_name=actor.name, actor_role=actor.role_label,
+                      description=f"Re-verified {ok} of {len(results)} asset(s) that cite '{d.name}' ({impact['freshness']['status']}).",
+                      event_metadata=json.dumps({"document_id": d.id, "freshness": impact["freshness"]["status"],
+                                                 "results": [{k: r.get(k) for k in ("content_id", "outcome", "review_run_id", "error")} for r in results]})))
+    db.commit()
+    return {"source_id": d.id, "results": results, "campaigns": campaigns,
+            "note": "Re-verification stores new review runs only. It does not approve, publish or mark any claim as supported."}

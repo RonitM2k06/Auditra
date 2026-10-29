@@ -39,6 +39,7 @@ PERMISSIONS = {
     "rules.manage": {"admin"},                       # rules, claims, sources, policies, logo, palette, members
     "campaign.manage": {"creator", "admin"},
     "simulate": {"reviewer", "admin"},
+    "evidence.reverify": {"reviewer", "admin"},      # re-run checks on content that cites a stale source
 }
 
 

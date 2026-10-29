@@ -64,6 +64,54 @@ async function handle<T>(res: Response, endpoint: string): Promise<T> {
   return res.json();
 }
 
+export interface ImpactClaim {
+  claim_check_id: string;
+  review_run_id: string;
+  claim_text: string;
+  status: string;
+  passage_text: string | null;
+  content_id: string;
+  title: string;
+  version_number: number;
+  relation: 'confirmed' | 'historical' | 'possible' | 'missing_source';
+  basis: string;
+  checked_at: string | null;
+}
+
+export interface SourceImpactEntry {
+  id: string;
+  name: string;
+  approval_status: string;
+  effective_date: string | null;
+  expiry_date: string | null;
+  review_date: string | null;
+  freshness: { status: string; date: string | null; reason: string };
+  affects: boolean;
+  claims: ImpactClaim[];
+  possible: ImpactClaim[];
+  assets: Array<{ content_id: string; title: string; status: string; version_number: number; claims: number; approved: boolean }>;
+  campaigns: Array<{ id: string; name: string; content_ids: string[]; basis: string }>;
+  notes: string[];
+}
+
+export interface SourceImpactData {
+  today: string;
+  sources: SourceImpactEntry[];
+  missing_sources: ImpactClaim[];
+  method: string;
+}
+
+export interface ReverifyResult {
+  content_id: string;
+  title: string;
+  outcome: 'ok' | 'failed';
+  before: string[];
+  after?: string[];
+  version_number?: number;
+  approval_satisfied?: boolean;
+  error?: string;
+}
+
 export interface TourStatus {
   ready: boolean;
   campaign: { id: string; name: string; brief: string | null; asset_count: number } | null;
@@ -242,6 +290,11 @@ export const api = {
     request<Replay>(`/content/${contentId}/replay?${from ? `from_version=${from}&` : ''}${to ? `to_version=${to}` : ''}`),
   counterfactual: (contentId: string, version: number, changes: RuleChange[]) =>
     request<SimulationItem & { note: string }>(`/content/${contentId}/versions/${version}/counterfactual`, { method: 'POST', body: JSON.stringify({ changes }) }),
+
+  // Source-expiry impact
+  getSourceImpact: (brandId: string) => request<SourceImpactData>(`/brands/${brandId}/source-impact`),
+  reverifySource: (brandId: string, sourceId: string, content_ids?: string[]) =>
+    request<{ results: ReverifyResult[]; note: string }>(`/brands/${brandId}/sources/${sourceId}/reverify`, { method: 'POST', body: JSON.stringify(content_ids ? { content_ids } : {}) }),
 
   // Guided tour (fixture lookup and labelled copy only; the tour drives the normal endpoints)
   getTourStatus: (brandId: string) => request<TourStatus>(`/brands/${brandId}/tour`),

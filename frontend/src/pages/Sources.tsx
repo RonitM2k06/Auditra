@@ -3,6 +3,7 @@ import { FileText, Search, Trash2, Upload } from 'lucide-react';
 import { Button, ClaimBadge, cx, EmptyState, Field, inputCls, Modal, Page, PageHeader, PageSkeleton, Section, useConfirm, useToast } from '../components/ui';
 import type { Brand, ClaimCheck, SourceDoc, SourceDocDetail, WorkspaceRole } from '../types';
 import { api } from '../api';
+import { SourceImpact } from '../components/SourceImpact';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -167,6 +168,10 @@ export function Sources({ brand, role, docId, navigate }: { brand: Brand; role: 
             </article>
           )}
         </div>
+      </div>
+
+      <div className="mt-8">
+        <SourceImpact brandId={brand.id} canReverify={role !== 'creator'} navigate={navigate} />
       </div>
 
       <Modal
