@@ -250,7 +250,8 @@ def test_simulation_does_not_change_active_data(admin, creator, brand_id):
 # --- Campaign consistency ---
 
 def test_campaign_consistency_on_seed(creator, brand_id):
-    camp = creator.get(f"/api/brands/{brand_id}/campaigns").json()[0]
+    # Other test modules add campaigns to the shared test database; pick the seeded one.
+    camp = next(c for c in creator.get(f"/api/brands/{brand_id}/campaigns").json() if c["name"] == "Atlas Pro launch")
     res = creator.get(f"/api/campaigns/{camp['id']}/consistency").json()
     kinds = {i["kind"] for i in res["issues"]}
     assert {"confirmed_mismatch", "missing_information", "rule_conflict"} <= kinds
