@@ -7,11 +7,15 @@ AUDITRA checks marketing copy **and image creatives** against a brand's rules an
 Automated checks inform the decision; a named, authenticated human makes it.
 
 **Repository:** https://github.com/RonitM2k06/Auditra
-**Live demo:** see [Deployment status](#deployment-status) — the Round 3 build is deployed only after the checklist there is complete.
+**Live demo:** https://auditra-bice.vercel.app/ (see [Deployment status](#deployment-status))
 
 ---
 
 ## What a judge can do in five minutes
+
+**Fastest path:** click **Take the tour** in the top bar. It walks the real screens step by step (analyse → Risk Radar → fix → re-check → approve as a different person → replay), checks each step against the stored records rather than assuming it worked, and switches demo personas for you. If the tour's landing page has already been used, it offers a clearly labelled *tour copy* instead of altering existing data.
+
+Or by hand:
 
 1. Open the app and choose a **demo persona** (Alex the creator, Sarah the compliance lead, Morgan the admin). These are real accounts with server-enforced permissions, limited to the fictional *Northstar Cloud* workspace.
 2. **Content reviews → "Migration promo social creative (sample)" → Run analysis.** The image's text is read by OCR; prohibited wording, missing disclosure, low-contrast text, an off-palette colour and a missing logo are drawn as regions on the creative.
@@ -45,6 +49,10 @@ Automated checks inform the decision; a named, authenticated human makes it.
 | **What-If policy simulator** | ✅ Post-Round 3 | Saved rule-change proposals with pass/review/fail per item before and after; activation needs a different admin, explicit confirmation and a simulation run against the current rulebook; audited |
 | **Governance Coverage Map** | ✅ Post-Round 3 | Policy × check × source × asset matrix; "not checked" (including rules added after an analysis) is never shown as "passed"; flags missing checks, uncited/expired sources and conflicts |
 | **Governance Copilot (AI agent)** | ✅ Post-Round 3 | Read-only agent with 7 permission-scoped lookup tools; every answer shows its lookups. Uses Claude (`claude-opus-5-5`, tool use) when `ANTHROPIC_API_KEY` is set, otherwise a deterministic router over the same tools; the UI says which answered |
+| **Guided judge tour** | ✅ Round 3 final | 7 steps on the real screens; each step is confirmed from stored records; safe fixture recovery via a labelled tour copy (sample workspace only) |
+| **Source-expiry impact view** | ✅ Round 3 final | Sources → per-source freshness (expired / review overdue / retired / current / undated from supplied dates only) and the assets whose stored citations depend on it (confirmed / historical / possible); reviewers re-verify affected assets with per-item results and retry |
+| **Campaign audit pack** | ✅ Round 3 final | PDF report + JSON manifest from one snapshot; SHA-256 hash chain over the campaign assets' audit events, compared with the previous export to detect altered history; limitations listed inside the pack. Hashed, **not digitally signed**; no credentials or tokens included |
+| **Negation-aware claims & claim removal** | ✅ Round 3 final | A source stating the direct opposite (e.g. "is not HIPAA certified") makes the claim *contradicted* when overlap is high; weaker matches stay *needs review*. Unsupported claims can be **removed** in the Fix tab, never rewritten with invented wording |
 | SSO, live CMS/social connectors, OCR for scanned PDFs, video | ❌ Not implemented | See roadmap |
 
 ---
@@ -168,10 +176,11 @@ Full tables: [`evaluation/RESULTS.md`](evaluation/RESULTS.md).
 
 ## Known limitations
 
-- Lexical retrieval (BM25) misses paraphrases with no shared words; contradictions are detected only via differing figures/dates with the same unit. Contradictory wording (e.g. "is HIPAA certified" vs "is not") is routed to *needs review*, not auto-labelled.
+- Lexical retrieval (BM25) misses paraphrases with no shared words; contradictions are detected via differing figures/dates with the same unit, or a direct negation with high term overlap ("is HIPAA certified" vs "is not HIPAA certified"). Looser contradictory wording is routed to *needs review*, not auto-labelled.
 - OCR can misread stylised text; rules apply to the transcription. Contrast estimates are less reliable over gradients/photos. Logo similarity is not proof of authenticity or correct placement.
 - Rule snapshots exist only for analyses run after the Round 3 upgrade; earlier history is not reconstructed.
 - The shared demo workspace is used by every visitor; a reset affects everyone.
+- Audit packs chain only the campaign assets' events, not workspace-wide events; the PDF renders Latin-1 text only (other characters are replaced). Tamper detection needs an earlier export to compare with; the first export is reported as *recomputed, unanchored*.
 - No SSO; no live publishing destinations; images only (no video); scanned PDFs need OCR first.
 
 ---
@@ -188,7 +197,7 @@ The `Dockerfile` works for container hosts (use a persistent volume if you use S
 
 ### Deployment status
 
-The Round 3 build has **not yet been deployed**; the Round 2 build is live at https://auditra-bice.vercel.app/. Before deploying: confirm the OCR runtime imports on Vercel's Linux image (if `opencv` needs system libraries there, creative upload returns a clear 503 and nothing is saved — text features are unaffected), then verify `/api/health` reports the deployed commit and run the five-minute journey above.
+Live at https://auditra-bice.vercel.app/ — check `/api/health` for the deployed commit. After each deploy: confirm the OCR runtime imports on Vercel's Linux image (if `opencv` needs system libraries there, creative upload returns a clear 503 and nothing is saved — text features are unaffected), then verify `/api/health` reports the deployed commit and run the five-minute journey above.
 
 ---
 
@@ -196,7 +205,7 @@ The Round 3 build has **not yet been deployed**; the Round 2 build is live at ht
 
 1. SAML/OIDC single sign-on and SCIM provisioning.
 2. Real publishing connectors (CMS, social schedulers) behind the same approval guard.
-3. Hybrid retrieval (BM25 + embeddings) with the same conservative verdict layer, and negation-aware contradiction detection.
+3. Hybrid retrieval (BM25 + embeddings) with the same conservative verdict layer, and paraphrase-aware contradiction detection.
 4. Layout checks (logo placement, safe zones) and video frame sampling.
 5. A larger, independently labelled evaluation set.
 
