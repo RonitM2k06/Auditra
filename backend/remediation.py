@@ -5,7 +5,8 @@ Suggestion kinds
   add_disclosure  append the rule's required disclosure text verbatim
   factual         a current source states a different figure; the replacement swaps in the source figure and
                   must be explicitly confirmed by a person, citing the passage
-  evidence_needed no reliable source exists (stale, unsupported, needs review); no replacement is offered
+  evidence_needed no reliable source exists (stale, unsupported, needs review); no replacement is offered.
+                  On text assets the claim can be removed (replacement exactly ""), never rewritten.
   creative        the issue is in an image; the artwork must be revised and re-uploaded
 
 Nothing is saved until apply; apply creates one new version, resets approval and requires re-analysis.
@@ -75,11 +76,12 @@ def suggestions(item, version, findings, claim_checks) -> List[Dict[str, Any]]:
                             "note": f"Uses the figure stated in {src.get('name')} ({source_figs[0]}). This changes a factual claim: "
                                     "confirm the source is correct before applying."})
                 continue
-        out.append({**base, "kind": "evidence_needed", "replacement": None,
+        out.append({**base, "kind": "evidence_needed", "replacement": None, "removable": not image,
                     "note": {"stale": "The only supporting source is expired or overdue for review. Add a current source, or remove the claim.",
                              "unsupported": "No approved source supports this claim. Add evidence to the library, or remove or soften the claim.",
                              "needs_review": "Evidence is partial or ambiguous. A reviewer must decide; AUDITRA will not invent a replacement.",
-                             "contradicted": "The sources disagree or give several figures; choose the correct value manually."}[c.status]})
+                             "contradicted": ("The sources disagree or give several figures; choose the correct value manually, or remove the claim."
+                                              if conflicts else "A source states the opposite of this claim. Remove it, or rewrite it by hand against the cited passage.")}[c.status]})
     return out
 
 
@@ -94,8 +96,14 @@ def apply_fixes(body: str, fixes: List[Dict[str, Any]]) -> Tuple[str, List[Dict[
             raise ValueError("Two selected fixes overlap. Apply one, preview, then the other.")
         if body[f["start"]:f["end"]] != f["original"]:
             raise ValueError(f"\"{f['original'][:40]}\" no longer matches the current text. Re-run the analysis.")
-        body = body[:f["start"]] + f["replacement"] + body[f["end"]:]
-        last_start = f["start"]
+        start, end = f["start"], f["end"]
+        if f["replacement"] == "":  # a removal also takes one adjacent space, so no double spaces remain
+            if body[end:end + 1] == " ":
+                end += 1
+            elif body[start - 1:start] == " ":
+                start -= 1
+        body = body[:start] + f["replacement"] + body[end:]
+        last_start = start
     for f in appends:
         if f["replacement"].lower() not in body.lower():
             body = body.rstrip() + "\n\n" + f["replacement"]

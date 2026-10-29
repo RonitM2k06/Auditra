@@ -64,8 +64,12 @@ def _resolve(db: Session, item, payload: RemediationIn):
         s = by_id.get(f.id)
         if not s:
             raise HTTPException(status_code=404, detail="A selected suggestion no longer exists. Re-run the analysis.")
+        if s["kind"] == "evidence_needed" and s.get("removable") and f.replacement == "":
+            chosen.append({**s, "kind": "remove_claim", "replacement": ""})
+            continue
         if s["kind"] in ("evidence_needed", "creative"):
-            raise HTTPException(status_code=422, detail=f"\"{s['original'][:40]}\" needs evidence or a revised creative, not a text replacement.")
+            raise HTTPException(status_code=422, detail=f"\"{s['original'][:40]}\" needs evidence or a revised creative, not a text replacement. "
+                                                        "It can only be removed.")
         replacement = f.replacement if f.replacement is not None else s["replacement"]
         if replacement is None or (s["kind"] != "add_disclosure" and not replacement.strip() and replacement != ""):
             raise HTTPException(status_code=422, detail=f"Write a replacement for \"{s['original'][:40]}\".")

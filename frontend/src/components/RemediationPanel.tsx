@@ -14,6 +14,7 @@ export interface Suggestion {
   note: string;
   explanation: string;
   requires_confirmation?: boolean;
+  removable?: boolean; // an unsupported claim on a text asset: it can be removed, never rewritten
   evidence?: { passage: string | null; source: string | null; section: string | null; expiry_date: string | null };
 }
 
@@ -103,7 +104,8 @@ export function RemediationPanel({ item, canEdit, onApplied, toast }: {
       </div>
       <ul>
         {data.suggestions.map((s) => {
-          const fixable = canEdit && FIXABLE.has(s.kind);
+          const removal = s.kind === 'evidence_needed' && !!s.removable;
+          const fixable = canEdit && (FIXABLE.has(s.kind) || removal);
           const on = s.id in picked;
           return (
             <li key={s.id} className={cx('border-b border-line px-4 py-3', on && 'bg-pine-50/40')}>
@@ -111,7 +113,7 @@ export function RemediationPanel({ item, canEdit, onApplied, toast }: {
                 <input type="checkbox" className="mt-1 accent-pine-600" disabled={!fixable} checked={on}
                   onChange={(e) => setPicked((p) => {
                     const n = { ...p };
-                    if (e.target.checked) n[s.id] = s.replacement ?? '';
+                    if (e.target.checked) n[s.id] = removal ? '' : s.replacement ?? '';
                     else delete n[s.id];
                     return n;
                   })} aria-label={`Select fix for ${s.original || CATEGORY_LABEL[s.category]}`} />
@@ -128,7 +130,8 @@ export function RemediationPanel({ item, canEdit, onApplied, toast }: {
                   {s.kind === 'creative' && <span className="mt-1 flex items-start gap-1 text-[12.5px] text-ink-600"><ImageUp className="mt-0.5 h-3.5 w-3.5 shrink-0" />{s.note}{s.replacement ? ` Suggested wording: “${s.replacement}”.` : ''}</span>}
                 </span>
               </label>
-              {on && s.kind !== 'add_disclosure' && (
+              {on && removal && <p className="ml-6 mt-1.5 rounded bg-white px-2 py-1 text-[12.5px] text-red-800">Removes this claim from the text. It can’t be rewritten here without a source.</p>}
+              {on && s.kind !== 'add_disclosure' && !removal && (
                 <textarea rows={2} value={picked[s.id]} onChange={(e) => setPicked((p) => ({ ...p, [s.id]: e.target.value }))}
                   className="ml-6 mt-2 w-[calc(100%-1.5rem)] rounded-md border border-line px-2 py-1.5 text-[13px] focus:border-pine-500 focus:outline-none"
                   aria-label="Replacement text" placeholder="Write the replacement…" />

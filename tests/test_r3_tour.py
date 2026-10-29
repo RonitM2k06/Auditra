@@ -30,23 +30,30 @@ def _run_story(creator, reviewer, brand_id):
     assert creator.post(f"/api/content/{cid}/review", json={}).status_code == 200
     risk = creator.get(f"/api/campaigns/{camp}/risk").json()
     mine = [r for r in risk["risks"] if cid in r["asset_ids"] and r["category"] == "claim_contradicted"]
-    assert len(mine) == 2
+    assert len(mine) == 3  # price, date, and HIPAA (the security source says it is not certified)
 
-    # Step 3: Fix tab, factual fixes need explicit confirmation.
+    # Step 3: Fix tab. Factual fixes need explicit confirmation; the HIPAA claim can only be removed, never rewritten.
     sugg = creator.get(f"/api/content/{cid}/remediation").json()["suggestions"]
     fixes = [{"id": s["id"]} for s in sugg if s["kind"] == "factual"]
     assert len(fixes) == 2
-    assert not any(s["replacement"] for s in sugg if s["kind"] == "evidence_needed")  # HIPAA: no invented fix
+    hipaa = next(s for s in sugg if "HIPAA" in s["original"])
+    assert hipaa["kind"] == "evidence_needed" and hipaa["replacement"] is None and hipaa["removable"]
+    rewrite = creator.post(f"/api/content/{cid}/remediation/preview",
+                           json={"version_number": 1, "fixes": [{"id": hipaa["id"], "replacement": "Northstar is HIPAA ready."}]})
+    assert rewrite.status_code == 422  # no invented wording for an unsupported claim
+    fixes.append({"id": hipaa["id"], "replacement": ""})
     r = creator.post(f"/api/content/{cid}/remediation/apply", json={"version_number": 1, "fixes": fixes})
     assert r.status_code == 422
     r = creator.post(f"/api/content/{cid}/remediation/apply", json={"version_number": 1, "fixes": fixes, "confirm_factual": True})
     assert r.status_code == 200 and r.json()["current_version_number"] == 2
+    body = r.json()["current_version"]["body"]
+    assert "HIPAA" not in body and "  " not in body and "$49" in body and "November 12" in body
 
-    # Step 4: re-check v2; the contradictions are gone, the unsupported claim is still flagged.
+    # Step 4: re-check v2; every remaining claim is supported by a current source.
     creator.post(f"/api/content/{cid}/review", json={})
     d = creator.get(f"/api/content/{cid}").json()
     statuses = {c["status"] for c in d["claim_checks"]}
-    assert "contradicted" not in statuses and "needs_review" in statuses
+    assert statuses == {"supported"}
     assert creator.post(f"/api/content/{cid}/submit").status_code == 200
 
     # Step 5: the author cannot approve; the reviewer persona can.

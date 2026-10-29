@@ -352,7 +352,11 @@ def verify_claim(claim: str, index: BM25Index, today: Optional[date] = None) -> 
             "negation_mismatch": negation_mismatch, "quantities": [q.text for q in claim_qty],
         }
 
-        if conflicts and coverage >= 0.5:
+        if negation_mismatch and coverage >= 0.8 and not conflicts and not missing:
+            # The passage states the same thing with the opposite polarity ("is not HIPAA certified").
+            v = Verdict("contradicted", f"The source states the opposite of this claim ({int(coverage * 100)}% of the claim's terms "
+                        "appear, but one side is negated).", passage, score, coverage, details)
+        elif conflicts and coverage >= 0.5:
             c = conflicts[0]
             v = Verdict("contradicted", f"The source states {', '.join(c['source'])} where the claim says {c['claim']}, "
                         f"in a passage about the same topic ({int(coverage * 100)}% of the claim's terms appear).",

@@ -140,7 +140,8 @@ IDX = [
     ("Atlas Pro costs $59 per member per month.", "contradicted"),
     ("Atlas Pro costs $49 per member per month.", "supported"),
     ("Northstar is the fastest cloud in the world.", "unsupported"),
-    ("Northstar is HIPAA certified.", "needs_review"),
+    ("Northstar is HIPAA certified.", "contradicted"),  # the source states the negation of the same claim
+    ("Northstar is HIPAA certified for every regulated hospital workload.", "needs_review"),  # negated, but too little overlap to call it
     ("Northstar is SOC 2 Type II certified.", "stale"),
     ("Northstar guarantees 99.995% uptime.", "needs_review"),
 ])

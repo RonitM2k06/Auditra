@@ -91,7 +91,7 @@ const STEPS: Step[] = [
     screen: (s) => ['studio', `${s.contentId}?tab=fix`],
     persona: 'creator',
     instructions:
-      'Select the two factual fixes (date and price). Each cites the fact-sheet passage. Preview them, then apply and confirm the factual change. The HIPAA claim has no source, so remediation offers no replacement for it.',
+      'Select the two factual fixes (date and price); each cites the fact-sheet passage. The security overview says Northstar is not HIPAA certified, so that claim can only be removed, not rewritten: select it too. Preview, then apply and confirm the factual change.',
     check: async (s) => {
       const d = await api.getContentItem(s.contentId!);
       const fix = d.versions.find((v) => v.version_number > 1 && (v.change_summary ?? '').startsWith('Remediation'));
