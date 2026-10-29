@@ -220,7 +220,7 @@ function Shell() {
       case 'dna':
         return <BrandDna brand={brand} role={role} userId={me.id} navigate={navigate} />;
       case 'campaigns':
-        return <Campaigns brand={brand} canManage={role !== 'reviewer'} campaignId={route.id} navigate={navigate} />;
+        return <Campaigns brand={brand} canManage={role !== 'reviewer'} canExport={role !== 'creator'} campaignId={route.id} navigate={navigate} />;
       case 'replay':
         return <Replay contentId={route.id} role={role} navigate={navigate} />;
       case 'coverage':

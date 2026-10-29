@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button, CONTENT_TYPES, cx, EmptyState, Field, inputCls, Modal, Page, PageHeader, PageSkeleton, StatusPill, useConfirm, useToast } from '../components/ui';
 import { RiskRadar } from '../components/RiskRadar';
+import { AuditPackPanel } from '../components/AuditPackPanel';
 import type { Brand, Campaign, CampaignIssue, Consistency, ContentItem, FactGroup } from '../types';
 import { api } from '../api';
 
@@ -71,7 +72,7 @@ function ConsistencyGraph({ data, focus, onFocus }: { data: Consistency; focus: 
   );
 }
 
-export function Campaigns({ brand, canManage, campaignId: routeId, navigate }: { brand: Brand; canManage: boolean; campaignId: string | null; navigate: (p: string, id?: string | null) => void }) {
+export function Campaigns({ brand, canManage, canExport = false, campaignId: routeId, navigate }: { brand: Brand; canManage: boolean; canExport?: boolean; campaignId: string | null; navigate: (p: string, id?: string | null) => void }) {
   const toast = useToast();
   const confirm = useConfirm();
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
@@ -165,6 +166,8 @@ export function Campaigns({ brand, canManage, campaignId: routeId, navigate }: {
                     </>
                   )}
                 </div>
+
+                <AuditPackPanel key={`pack-${data.id}`} campaignId={data.id} canExport={canExport} />
 
                 <div className="inline-flex rounded-lg border border-line bg-white p-0.5 text-[13px]" role="tablist">
                   {([['risk', 'Risk radar'], ['graph', 'Consistency graph']] as const).map(([k, l]) => (

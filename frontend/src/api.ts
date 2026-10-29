@@ -112,6 +112,23 @@ export interface ReverifyResult {
   error?: string;
 }
 
+export interface AuditPack {
+  id: string;
+  campaign_id: string;
+  created_by: string;
+  created_at: string;
+  manifest_sha256: string;
+  final_chain_hash: string;
+  verification: 'pass' | 'pass_unanchored' | 'incomplete' | 'fail';
+  summary: string;
+  checks: Array<{ check: string; result: string; detail: string }>;
+  limitations: string[];
+  event_count: number;
+  asset_count: number;
+  json_url: string;
+  pdf_url: string;
+}
+
 export interface TourStatus {
   ready: boolean;
   campaign: { id: string; name: string; brief: string | null; asset_count: number } | null;
@@ -295,6 +312,10 @@ export const api = {
   getSourceImpact: (brandId: string) => request<SourceImpactData>(`/brands/${brandId}/source-impact`),
   reverifySource: (brandId: string, sourceId: string, content_ids?: string[]) =>
     request<{ results: ReverifyResult[]; note: string }>(`/brands/${brandId}/sources/${sourceId}/reverify`, { method: 'POST', body: JSON.stringify(content_ids ? { content_ids } : {}) }),
+
+  // Campaign audit packs
+  getAuditPacks: (campaignId: string) => request<AuditPack[]>(`/campaigns/${campaignId}/audit-packs`),
+  createAuditPack: (campaignId: string) => request<AuditPack>(`/campaigns/${campaignId}/audit-packs`, { method: 'POST' }),
 
   // Guided tour (fixture lookup and labelled copy only; the tour drives the normal endpoints)
   getTourStatus: (brandId: string) => request<TourStatus>(`/brands/${brandId}/tour`),

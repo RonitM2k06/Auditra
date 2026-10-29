@@ -203,3 +203,21 @@ class RuleProposal(Base):
     simulated_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
     decided_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
+
+
+class AuditPackExport(Base):
+    """One campaign audit-pack export. The JSON manifest and the PDF are generated from the same snapshot
+    and stored together; event_hashes_json is the anchor later exports compare against."""
+    __tablename__ = "audit_pack_exports"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    brand_id = Column(String(36), ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
+    campaign_id = Column(String(36), ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_by = Column(String(100), nullable=False)
+    manifest_json = Column(Text, nullable=False)
+    manifest_sha256 = Column(String(64), nullable=False)
+    pdf = Column(LargeBinary, nullable=False)
+    final_chain_hash = Column(String(64), nullable=False)
+    event_hashes_json = Column(Text, nullable=False, default="{}")  # {event_id: event_hash}
+    verification_status = Column(String(20), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)

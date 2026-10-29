@@ -40,6 +40,7 @@ PERMISSIONS = {
     "campaign.manage": {"creator", "admin"},
     "simulate": {"reviewer", "admin"},
     "evidence.reverify": {"reviewer", "admin"},      # re-run checks on content that cites a stale source
+    "audit.export": {"reviewer", "admin"},           # campaign audit packs (PDF + JSON manifest)
 }
 
 
