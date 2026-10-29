@@ -75,6 +75,10 @@ export function Studio({ brand, contentId, initialTab, role, navigate, onChanged
   const [mode, setMode] = useState<'edit' | 'marked'>('edit');
   type Panel = 'findings' | 'fix' | 'claims' | 'approval' | 'history' | 'discussion';
   const [panel, setPanel] = useState<Panel>((['findings', 'fix', 'claims', 'approval', 'history', 'discussion'].includes(initialTab ?? '') ? initialTab : 'findings') as Panel);
+  // Follow tab links (e.g. from the guided tour) while the same item stays open.
+  useEffect(() => {
+    if (initialTab && ['findings', 'fix', 'claims', 'approval', 'history', 'discussion'].includes(initialTab)) setPanel(initialTab as Panel);
+  }, [initialTab, contentId]);
   const [sevFilter, setSevFilter] = useState<string>('all');
   const [srcFilter, setSrcFilter] = useState<SourceFilter>('all');
   const [selected, setSelected] = useState<string | null>(null);

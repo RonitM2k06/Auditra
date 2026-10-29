@@ -431,6 +431,12 @@ def _seed_sample_workspace(db: Session, force_reset: bool = False) -> Brand:
 
 
 SAMPLES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "samples")
+ATLAS_CAMPAIGN_NAME = "Atlas Pro launch"
+ATLAS_LANDING_TITLE = "Atlas Pro launch: landing page"
+# Fictional fixture: contradicts the fact sheet on date and price, and makes one claim no source backs.
+ATLAS_LANDING_BODY = ("Atlas Pro is available from November 14, 2026. Pricing starts at $59 per member per month.\n\n"
+                      "Accelerate workload throughput by up to 34% within 90 days. Northstar is HIPAA certified for regulated workloads.\n\n"
+                      "Disclaimer: Results may vary based on client workload and infrastructure configurations.")
 DEMO_PEOPLE = [
     ("creator", "alex.rivers@northstar.demo", "Alex Rivers"),
     ("reviewer", "sarah.chen@northstar.demo", "Sarah Chen"),
@@ -519,13 +525,11 @@ def _seed_round3(db: Session, brand: Brand, users: dict, now) -> None:
     email = text_item("Atlas Pro launch: announcement email", "email",
                       "Atlas Pro launches November 12, 2026. Get Atlas Pro for $49 per member per month and start a 14-day free trial.\n\n"
                       "Northstar maintains a 99.995% uptime SLA backed by multi-region automated failover.\n\n" + disclaimer, 50)
-    landing = text_item("Atlas Pro launch: landing page", "landing_page",
-                        "Atlas Pro is available from November 14, 2026. Pricing starts at $59 per member per month.\n\n"
-                        "Accelerate workload throughput by up to 34% within 90 days. Northstar is HIPAA certified for regulated workloads.\n\n" + disclaimer, 45)
+    landing = text_item(ATLAS_LANDING_TITLE, "landing_page", ATLAS_LANDING_BODY, 45)
     social = text_item("Atlas Pro launch: social post", "social_post",
                        "Atlas Pro is here Nov 12! Start your 14-day free trial today. Northstar guarantees results for every team.", 40)
 
-    campaign = Campaign(brand_id=brand.id, name="Atlas Pro launch", created_by="Alex Rivers",
+    campaign = Campaign(brand_id=brand.id, name=ATLAS_CAMPAIGN_NAME, created_by="Alex Rivers",
                         brief="Approved brief: Atlas Pro launches November 12, 2026 at $49 per member per month with a 14-day free trial. "
                               "Every asset must carry the performance disclaimer.")
     db.add(campaign)

@@ -145,7 +145,8 @@ export function RemediationPanel({ item, canEdit, onApplied, toast }: {
       {canEdit && (
         <div className="sticky bottom-0 flex items-center gap-2 border-t border-line bg-white px-4 py-3">
           <span className="text-[12.5px] text-ink-600">{count} selected</span>
-          <Button size="sm" variant="primary" className="ml-auto" disabled={!count || busy} onClick={runPreview}>
+          {/* Left-aligned so the floating Copilot launcher (bottom-right) never covers it. */}
+          <Button size="sm" variant="primary" className="ml-2" disabled={!count || busy} onClick={runPreview}>
             <Sparkles className="h-3.5 w-3.5" /> {busy && !preview ? 'Checking…' : 'Preview fixes'}
           </Button>
         </div>

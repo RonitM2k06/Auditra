@@ -20,6 +20,7 @@ import { Replay } from './pages/Replay';
 import { NewCreative } from './pages/NewCreative';
 import { Copilot } from './components/Copilot';
 import { Coverage } from './pages/Coverage';
+import { Tour, startTour } from './components/Tour';
 import type { Brand, Me } from './types';
 import { api, type HealthStatus } from './api';
 
@@ -267,12 +268,13 @@ function Shell() {
         hasId={!!route.id}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar brand={brand} page={route.page} onMenu={() => setNavOpen(true)} health={health} />
+        <Topbar brand={brand} page={route.page} onMenu={() => setNavOpen(true)} health={health} onTour={startTour} />
         <main key={brand.id} className="flex min-h-0 flex-1 flex-col">
           {page()}
         </main>
       </div>
       <Copilot brandId={brand.id} brandName={brand.name} />
+      <Tour brand={brand} me={me} role={role} navigate={navigate} />
       <NewBrandModal
         open={newBrandOpen}
         onClose={() => setNewBrandOpen(false)}

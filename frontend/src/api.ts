@@ -64,6 +64,14 @@ async function handle<T>(res: Response, endpoint: string): Promise<T> {
   return res.json();
 }
 
+export interface TourStatus {
+  ready: boolean;
+  campaign: { id: string; name: string; brief: string | null; asset_count: number } | null;
+  asset: { id: string; title: string; status: string; version: number; kind: 'seeded' | 'tour_copy' } | null;
+  problem: 'missing_campaign' | 'missing_asset' | 'asset_used' | null;
+  message: string | null;
+}
+
 export interface HealthStatus {
   status: string;
   service: string;
@@ -234,4 +242,8 @@ export const api = {
     request<Replay>(`/content/${contentId}/replay?${from ? `from_version=${from}&` : ''}${to ? `to_version=${to}` : ''}`),
   counterfactual: (contentId: string, version: number, changes: RuleChange[]) =>
     request<SimulationItem & { note: string }>(`/content/${contentId}/versions/${version}/counterfactual`, { method: 'POST', body: JSON.stringify({ changes }) }),
+
+  // Guided tour (fixture lookup and labelled copy only; the tour drives the normal endpoints)
+  getTourStatus: (brandId: string) => request<TourStatus>(`/brands/${brandId}/tour`),
+  createTourCopy: (brandId: string) => request<TourStatus>(`/brands/${brandId}/tour/copy`, { method: 'POST' }),
 };
